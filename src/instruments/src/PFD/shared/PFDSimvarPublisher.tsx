@@ -1,6 +1,11 @@
 import { EventBus, SimVarDefinition, SimVarValueType, SimVarPublisher } from 'msfssdk';
+import {
+    AdirsSimVarDefinitions,
+    AdirsSimVars,
+    SwitchingPanelSimVarsDefinitions, SwitchingPanelVSimVars,
+} from '../../MsfsAvionicsCommon/SimVarTypes';
 
-export interface PFDSimvars {
+export type PFDSimvars = AdirsSimVars & SwitchingPanelVSimVars & {
     coldDark: number;
     elec: number;
     elecFo: number;
@@ -55,11 +60,9 @@ export interface PFDSimvars {
     markerBeacon: number;
     isAltManaged: boolean;
     targetSpeedManaged: number;
-    mach: number;
     flapHandleIndex: number;
     transAlt: number;
     transAltAppr: number;
-    groundTrack: number;
     showSelectedHeading: number;
     altConstraint: number;
     trkFpaActive: boolean;
@@ -85,7 +88,6 @@ export interface PFDSimvars {
     setHoldSpeed: boolean;
     trkFpaDeselectedTCAS: boolean;
     tcasRaInhibited: boolean;
-    groundSpeed: number;
     radioAltitude1: number;
     radioAltitude2: number;
     crzAltMode: boolean;
@@ -205,7 +207,6 @@ export enum PFDVars {
     flapHandleIndex = 'L:A32NX_FLAPS_HANDLE_INDEX',
     transAlt = 'L:AIRLINER_TRANS_ALT',
     transAltAppr = 'L:AIRLINER_APPR_TRANS_ALT',
-    groundTrack = 'L:A32NX_ADIRS_IR_1_TRACK',
     showSelectedHeading = 'L:A320_FCU_SHOW_SELECTED_HEADING',
     altConstraint = 'L:A32NX_FG_ALTITUDE_CONSTRAINT',
     trkFpaActive = 'L:A32NX_TRK_FPA_MODE_ACTIVE',
@@ -230,7 +231,6 @@ export enum PFDVars {
     setHoldSpeed = 'L:A32NX_PFD_MSG_SET_HOLD_SPEED',
     trkFpaDeselectedTCAS= 'L:A32NX_AUTOPILOT_TCAS_MESSAGE_TRK_FPA_DESELECTION',
     tcasRaInhibited = 'L:A32NX_AUTOPILOT_TCAS_MESSAGE_RA_INHIBITED',
-    groundSpeed = 'L:A32NX_ADIRS_IR_1_GROUND_SPEED',
     radioAltitude1 = 'L:A32NX_RA_1_RADIO_ALTITUDE',
     radioAltitude2 = 'L:A32NX_RA_2_RADIO_ALTITUDE',
     crzAltMode = 'L:A32NX_FMA_CRUISE_ALT_MODE',
@@ -294,6 +294,8 @@ export enum PFDVars {
 /** A publisher to poll and publish nav/com simvars. */
 export class PFDSimvarPublisher extends SimVarPublisher<PFDSimvars> {
     private static simvars = new Map<keyof PFDSimvars, SimVarDefinition>([
+        ...AdirsSimVarDefinitions,
+        ...SwitchingPanelSimVarsDefinitions,
         ['coldDark', { name: PFDVars.coldDark, type: SimVarValueType.Number }],
         ['elec', { name: PFDVars.elec, type: SimVarValueType.Bool }],
         ['elecFo', { name: PFDVars.elecFo, type: SimVarValueType.Bool }],
@@ -352,7 +354,6 @@ export class PFDSimvarPublisher extends SimVarPublisher<PFDSimvars> {
         ['flapHandleIndex', { name: PFDVars.flapHandleIndex, type: SimVarValueType.Number }],
         ['transAlt', { name: PFDVars.transAlt, type: SimVarValueType.Number }],
         ['transAltAppr', { name: PFDVars.transAltAppr, type: SimVarValueType.Number }],
-        ['groundTrack', { name: PFDVars.groundTrack, type: SimVarValueType.Number }],
         ['showSelectedHeading', { name: PFDVars.showSelectedHeading, type: SimVarValueType.Number }],
         ['altConstraint', { name: PFDVars.altConstraint, type: SimVarValueType.Feet }],
         ['trkFpaActive', { name: PFDVars.trkFpaActive, type: SimVarValueType.Bool }],
@@ -377,7 +378,6 @@ export class PFDSimvarPublisher extends SimVarPublisher<PFDSimvars> {
         ['setHoldSpeed', { name: PFDVars.setHoldSpeed, type: SimVarValueType.Bool }],
         ['trkFpaDeselectedTCAS', { name: PFDVars.trkFpaDeselectedTCAS, type: SimVarValueType.Bool }],
         ['tcasRaInhibited', { name: PFDVars.tcasRaInhibited, type: SimVarValueType.Bool }],
-        ['groundSpeed', { name: PFDVars.groundSpeed, type: SimVarValueType.Number }],
         ['radioAltitude1', { name: PFDVars.radioAltitude1, type: SimVarValueType.Number }],
         ['radioAltitude2', { name: PFDVars.radioAltitude2, type: SimVarValueType.Number }],
         ['crzAltMode', { name: PFDVars.crzAltMode, type: SimVarValueType.Bool }],
