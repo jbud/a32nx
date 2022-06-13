@@ -11,6 +11,7 @@
 1. [FMGC] Show proper transition names and final approach slope from AAU1 - @tracernz (Mike)
 1. [FMGC] Don't accept blank input or / for hold distance - @tracernz (Mike)
 1. [ATSU] Fix LSK6L not returning to ATSU DATALINK page in ATC MENU - @BravoMike99 (Bruno_pt99#5802)
+1. [EFB] Added pause at T/D function - @2hwk (2Cas#1022)
 
 ## 0.9.0
 
