@@ -5148,6 +5148,13 @@ class FMCMainDisplay extends BaseAirliners {
 
         return { direction: trueHeading, speed: this.perfApprWindSpeed };
     }
+    getApproachQnh() {
+        return this.perfApprQNH;
+    }
+    getApproachTemperature() {
+        return this.perfApprTemp;
+    }
+
 }
 
 FMCMainDisplay.clrValue = "\xa0\xa0\xa0\xa0\xa0CLR";
