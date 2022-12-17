@@ -5134,7 +5134,12 @@ class FMCMainDisplay extends BaseAirliners {
     getPreSelectedClbSpeed() {
         return this.preSelectedClbSpeed;
     }
-
+    getPreSelectedCruiseSpeed() {
+        return this.preSelectedCrzSpeed;
+    }
+    getPreSelectedDescentSpeed() {
+        return this.preSelectedDesSpeed;
+    }
     getTakeoffFlapsSetting() {
         return this.flaps;
     }
