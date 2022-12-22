@@ -17,6 +17,7 @@
 1. [FLIGHTMODEL] Reduced flap induced drag - @donstim (donbikes#4084)
 1. [RMP] RMPs navigation backup - Julian Sebline (Julian Sebline#8476 on Discord)
 1. [EFB] Fix and improve pushback system and add API documentation - @frankkopp (Frank Kopp)
+1. [FMGC] Improved importing flight plans from MSFS World Map - @frankkopp (Frank Kopp)
 
 ## 0.9.0
 
