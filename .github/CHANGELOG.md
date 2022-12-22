@@ -14,6 +14,7 @@
 1. [HYD] Trimmable physical assemblies - @Crocket63 (crocket)
 1. [HYD] Simulation of the rudder mechanical assembly and yaw dampers - @Crocket63 (crocket)
 1. [FLIGHTMODEL] Reduced flap induced drag - @donstim (donbikes#4084)
+1. [RMP] RMPs navigation backup - Julian Sebline (Julian Sebline#8476 on Discord)
 
 ## 0.9.0
 
