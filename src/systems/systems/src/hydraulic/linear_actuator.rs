@@ -2551,7 +2551,7 @@ mod tests {
     fn linear_actuator_not_moving_on_locked_rigid_body() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         let actuator_position_init = test_bed.query(|a| a.body_position());
@@ -2565,7 +2565,7 @@ mod tests {
     fn linear_actuator_moving_on_unlocked_rigid_body() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         let actuator_position_init = test_bed.query(|a| a.body_position());
@@ -2584,7 +2584,7 @@ mod tests {
     fn linear_actuator_can_move_rigid_body_up() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         let actuator_position_init = test_bed.query(|a| a.body_position());
@@ -2607,7 +2607,7 @@ mod tests {
     fn linear_actuator_resists_body_drop_when_valves_closed() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         test_bed.command(|a| a.command_unlock());
@@ -2630,7 +2630,7 @@ mod tests {
     fn linear_actuator_dampens_body_drop_when_active_damping_mode() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         test_bed.command(|a| a.command_unlock());
@@ -2654,7 +2654,7 @@ mod tests {
     fn linear_actuator_dampens_super_slow_body_drop_when_slow_damping_mode() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         test_bed.command(|a| a.command_unlock());
@@ -2678,7 +2678,7 @@ mod tests {
     fn linear_actuator_without_hyd_pressure_cant_move_body_up() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         test_bed.command(|a| a.command_unlock());
@@ -2695,7 +2695,7 @@ mod tests {
     fn linear_actuator_losing_hyd_pressure_half_way_cant_move_body_up() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         test_bed.command(|a| a.command_unlock());
@@ -2721,7 +2721,7 @@ mod tests {
     fn body_gravity_movement_if_unlocked() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, false);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         test_bed.command(|a| a.command_unlock());
@@ -2740,7 +2740,7 @@ mod tests {
     fn start_moving_once_unlocked() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         test_bed.write_by_name(UpdateContext::PLANE_BANK_KEY, -45.);
@@ -2762,7 +2762,7 @@ mod tests {
     fn locks_at_required_position() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         test_bed.write_by_name(UpdateContext::PLANE_BANK_KEY, -45.);
@@ -2791,7 +2791,7 @@ mod tests {
     fn soft_lock_with_zero_velocity_stops_the_body() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         test_bed.write_by_name(UpdateContext::PLANE_BANK_KEY, -45.);
@@ -2830,7 +2830,7 @@ mod tests {
     fn linear_actuator_can_control_position() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = cargo_door_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         test_bed.command(|a| a.command_unlock());
@@ -3006,7 +3006,7 @@ mod tests {
     fn right_main_gear_locked_down_at_init() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = main_gear_right_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         assert!(test_bed.query(|a| a.is_locked()));
@@ -3102,7 +3102,7 @@ mod tests {
     fn left_main_gear_locked_down_at_init() {
         let mut test_bed = SimulationTestBed::new(|context| {
             let tested_object = main_gear_left_assembly(context, true);
-            TestAircraft::new(context, Duration::from_millis(33), tested_object)
+            TestAircraft::new(context, Duration::from_millis(10), tested_object)
         });
 
         assert!(test_bed.query(|a| a.is_locked()));
