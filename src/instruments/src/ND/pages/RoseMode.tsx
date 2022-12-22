@@ -13,7 +13,6 @@ import { ApproachMessage } from '../elements/ApproachMessage';
 import { CrossTrack } from '../elements/CrossTrack';
 import { TrackLine } from '../elements/TrackLine';
 import { Traffic } from '../elements/Traffic';
-import { TerrainMap } from '../elements/TerrainMap';
 
 export interface RoseModeProps {
     symbols: NdSymbol[],
@@ -59,7 +58,6 @@ export const RoseMode: FC<RoseModeProps> = ({ symbols, adirsAlign, rangeSetting,
     if (adirsAlign) {
         return (
             <>
-                <TerrainMap x={0} y={134} width={768} height={250} side={side} potentiometerIndex={side === 'L' ? 94 : 95} clipName="rose-mode-map-clip" />
                 <Overlay
                     heading={heading}
                     rangeSetting={rangeSetting}
