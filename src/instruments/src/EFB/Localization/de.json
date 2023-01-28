@@ -448,6 +448,28 @@
     "TugSpeed": "Schleppgeschwindigkeit",
     "UseControllerInput": "Controller-Eingabe verwenden"
   },
+  "QuickControls": {
+    "AlignAdirs": "ADIRS ausrichten",
+    "FinishBoarding": "Einsteigen abschließen",
+    "OnScreenKeyboard": "Bildschirmtastatur",
+    "SimBridge": "SimBridge",
+    "SimBridgeConnected": "Verbunden",
+    "SimBridgeConnecting": "Verbinden...",
+    "SimBridgeOff": "Aus",
+    "SimBridgeOffline": "Nicht verfügbar",
+    "TT": {
+      "AlignAdirs": "ADIRS sofort ausrichten",
+      "AutoBrightness": "Automatische Helligkeit ein-/ausschalten",
+      "Brightness": "Stellen Sie die flyPad-Helligkeit ein",
+      "FinishBoarding": "Boarding sofort abschließen",
+      "OnScreenKeyboard": "Bildschirmtastatur ein-/ausschalten",
+      "PowerButton": "Ausschalten",
+      "Settings": "Gehe zu flyPad-Einstellungen",
+      "SimBridge": "SimBridge-Verbindung steuern",
+      "Sleep": "Bereitschaft"
+    },
+    "Title": "Schnelleinstellungen"
+  },
   "Settings": {
     "About": {
       "Title": "Über"
@@ -523,7 +545,7 @@
       "Both": "Synchronisiert",
       "Calibrate": "Kalibrieren",
       "Captain": "Kapitän",
-      "CockpitSeatUsedToControl": "Cockpit Seat Used To Control",
+      "CockpitSeatUsedToControl": "Zur Steuerung verwendete Cockpitseite",
       "ConesEnabled": "Sicherheitskegel",
       "Copilot": "Copilot",
       "DefaultBarometerUnit": "Standard Barometer-Einheit",
@@ -538,6 +560,7 @@
       "Off": "Aus",
       "Save": "Zurückspeichern bei Änderung",
       "Side": "Seite",
+      "SimBridgeIp": "Externe SimBridge Hostadresse",
       "SimBridgePort": "Externer SimBridge-Port",
       "SyncMsfsFlightPlan": "MSFS-Flugplan-Synchronisation",
       "ThrottleDetents": "Schubhebelkalibrierung",
@@ -545,6 +568,11 @@
       "UseCalculatedIlsSignals": "Berechnete ILS-Signale verwenden",
       "WheelChocksEnabled": "Bremskeile",
       "inHg": "inHg"
+    },
+    "ThirdPartyOptions": {
+      "GsxFuelEnabled": "GSX Fueling Synchronization",
+      "GsxPayloadEnabled": "GSX Payload Synchronization",
+      "Title": "3rd Party Options"
     },
     "ThrottleConfig": {
       "Apply": "Anwenden",
@@ -610,12 +638,26 @@
     "Sep": "Sep",
     "Sun": "So",
     "TT": {
+      "Brightness": "Click to change Brightness",
       "ConnectedToLocalApi": "Mit SimBridge verbunden",
       "DisconnectedFromLocalApi": "Keine Verbindung zur SimBridge",
+      "QuickControls": "Klick für Schnelleinstellungen",
       "TurnOffOrShutdownEfb": "EFB ausschalten oder herunterfahren"
     },
     "Thu": "Do",
     "Tue": "Di",
     "Wed": "Mi"
+  },
+  "VersionCheck": {
+    "Title": "Neue Version verfügbar",
+    "StatusBarWarning": "Neue A32NX Version verfügbar",
+    "CurrentVersionText": "Momentan wird die $edition Edition in dieser Version genutzt:",
+    "LatestVersionText": "Die aktuell verfügbare $edition Version ist:",
+    "RecommendationText": "Bitte mit Hilfe des FlyByWire-Installer die neueste Version installieren.",
+    "StatusBarWarning": "Neue A32NX Version verfügbar",
+    "TT": {
+      "StatusBarWarning": "Please update your aircraft using the FlyByWire Installer."
+    },
+    "Title": "Neue Version verfügbar"
   }
 }

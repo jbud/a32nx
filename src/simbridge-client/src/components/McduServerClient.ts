@@ -2,15 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0
 
 import { NXDataStore } from '@shared/persistence';
-import { ClientState } from './ClientState';
+import { ClientState, SimBridgeClientState } from './ClientState';
 
 /**
  * Class to communicate with the SimBridge MCDU server
  */
 export class McduServerClient {
-    public static port = () => NXDataStore.get('CONFIG_SIMBRIDGE_PORT', '8380');
+    public static port = ():string => NXDataStore.get('CONFIG_SIMBRIDGE_PORT', '8380');
 
-    public static url: string = `ws://127.0.0.1:${this.port()}/interfaces/v1/mcdu`.replace(/\s+/g, '');
+    public static url = ():string => `ws://127.0.0.1:${this.port()}/interfaces/v1/mcdu`.replace(/\s+/g, '');
 
     private state: ClientState = ClientState.getInstance();
 
@@ -27,12 +27,12 @@ export class McduServerClient {
      * methods as it will not recognize "this" (will be undefined).
      */
     public connect(eventHandler: (e: Event) => void) {
-        if (this.state.isAvailable()) {
+        if (this.state.getSimBridgeClientState() === SimBridgeClientState.CONNECTED) {
             // first disconnect to clean up any previous connection
             this.disconnect();
 
             // Connect web socket
-            this.socket = new WebSocket(McduServerClient.url);
+            this.socket = new WebSocket(McduServerClient.url());
 
             // Setup up event handler from the caller
             if (eventHandler && typeof (eventHandler) === 'function') {

@@ -151,11 +151,11 @@
       "BoardingTime": "Thời gian lên máy bay",
       "Cargo": "Hàng hóa",
       "Current": "Hiện tại",
-      "DeboardConfirmationBody": "Please confirm deboarding all passengers",
-      "DeboardConfirmationCancel": "Cancel",
-      "DeboardConfirmationConfirm": "Deboard",
-      "DeboardConfirmationTitle": "Deboard all Passengers?",
-      "EstimatedDurationUnit": "minutes",
+      "DeboardConfirmationBody": "Vui lòng xác nhận cho mọi hành khách xuống tàu",
+      "DeboardConfirmationCancel": "Huỷ",
+      "DeboardConfirmationConfirm": "Cho hành khách xuống máy bay",
+      "DeboardConfirmationTitle": "Cho mọi hành khách xuống tàu?",
+      "EstimatedDurationUnit": "phút",
       "LoadingTime": "Loading Time",
       "Passengers": "Hành khách",
       "Planned": "Đã lên kế hoạch",
@@ -169,7 +169,7 @@
         "PerPaxBagWeight": "Trọng lượng mỗi túi hành khách",
         "PerPaxWeight": "Trọng lượng mỗi hành khách",
         "StartBoarding": "Bắt đầu lên máy bay",
-        "StartDeboarding": "Begin Deboarding"
+        "StartDeboarding": "Bắt đầu cho hkhách xuống tàu bay"
       },
       "Title": "Tải trọng",
       "ZFW": "Trọng lượng máy bay không kể nhiên liệu",
@@ -448,6 +448,28 @@
     "TugSpeed": "Tốc độ xe kéo",
     "UseControllerInput": "Sử dụng đầu vào từ bộ điều khiển"
   },
+  "QuickControls": {
+    "AlignAdirs": "Căn chỉnh ADIRS",
+    "FinishBoarding": "Hoàn thành việc cho lên máy bay",
+    "OnScreenKeyboard": "Bàn phím trên màn hình",
+    "SimBridge": "SimBridge",
+    "SimBridgeConnected": "Đã kết nối",
+    "SimBridgeConnecting": "Đang kết nối...",
+    "SimBridgeOff": "Tắt",
+    "SimBridgeOffline": "Không khả dụng",
+    "TT": {
+      "AlignAdirs": "Căn chỉnh ADIRS ngay lập tức",
+      "AutoBrightness": "Bật/Tắt độ sáng tự động",
+      "Brightness": "Cài đặt độ sáng của flyPad",
+      "FinishBoarding": "Hoàn thành việc cho lên máy bay ngay lập tức",
+      "OnScreenKeyboard": "Bật/Tắt Bàn phím trên Màn hình",
+      "PowerButton": "Tắt",
+      "Settings": "Đi tới cài đặt flyPad",
+      "SimBridge": "Kiểm soát kết nối SimBridge",
+      "Sleep": "Chế độ chờ"
+    },
+    "Title": "Bảng điều khiển nhanh"
+  },
   "Settings": {
     "About": {
       "Title": "Giới thiệu"
@@ -520,12 +542,12 @@
     "SimOptions": {
       "Active": "Hoạt động",
       "Auto": "Tự động",
-      "Both": "Synchronized",
+      "Both": "Đã đồng bộ hóa",
       "Calibrate": "Hiệu chỉnh",
-      "Captain": "Captain",
-      "CockpitSeatUsedToControl": "Cockpit Seat Used To Control",
+      "Captain": "Cơ trưởng",
+      "CockpitSeatUsedToControl": "Ghế buồng lái được sử dụng để điều khiển",
       "ConesEnabled": "Chóp nón An toàn",
-      "Copilot": "Copilot",
+      "Copilot": "Cơ phó",
       "DefaultBarometerUnit": "Đơn vị áp kế mặc định",
       "DynamicRegistrationDecal": "Đề-can đăng ký động",
       "EnableSimBridge": "Bật kết nối Simbridge (Tự động ngừng kích hoạt sau 5 phút nếu không có kết nối thành công)",
@@ -538,6 +560,7 @@
       "Off": "Tắt",
       "Save": "Lưu",
       "Side": "Side",
+      "SimBridgeIp": "External SimBridge Host Address",
       "SimBridgePort": "Cổng SimBridge bên ngoài",
       "SyncMsfsFlightPlan": "Đồng bộ hóa Kế hoạch chuyến bay của MSFS",
       "ThrottleDetents": "Chốt cần ga",
@@ -545,6 +568,11 @@
       "UseCalculatedIlsSignals": "Sử dụng tín hiệu ILS được tính",
       "WheelChocksEnabled": "Ốp chặn bánh xe",
       "inHg": "inHg"
+    },
+    "ThirdPartyOptions": {
+      "GsxFuelEnabled": "GSX Fueling Synchronization",
+      "GsxPayloadEnabled": "GSX Payload Synchronization",
+      "Title": "3rd Party Options"
     },
     "ThrottleConfig": {
       "Apply": "Áp dụng",
@@ -610,12 +638,24 @@
     "Sep": "Thg 9",
     "Sun": "CN",
     "TT": {
+      "Brightness": "Click to change Brightness",
       "ConnectedToLocalApi": "Đã được kết nối tới SimBridge",
       "DisconnectedFromLocalApi": "Đã ngắt kết nối khỏi SimBridge",
+      "QuickControls": "Nhấn để mở Bảng Điều khiển Nhanh",
       "TurnOffOrShutdownEfb": "Tắt hoặc Tắt máy EFB"
     },
     "Thu": "Th 5",
     "Tue": "Th 3",
     "Wed": "Th 4"
+  },
+  "VersionCheck": {
+    "CurrentVersionText": "Bạn đang sử dụng bản $edition với phiên bản:",
+    "LatestVersionText": "Phiên bản $edition mới nhất là",
+    "RecommendationText": "Vui lòng cập nhật máy bay của bạn bằng cách sử dụng trình cài đặt FlyByWire.",
+    "StatusBarWarning": "Phiên bản máy bay cũ",
+    "TT": {
+      "StatusBarWarning": "Please update your aircraft using the FlyByWire Installer."
+    },
+    "Title": "Đã có cập nhật"
   }
 }

@@ -448,6 +448,28 @@
     "TugSpeed": "Dragarhastighet",
     "UseControllerInput": "Använda spelkontrollen som indata"
   },
+  "QuickControls": {
+    "AlignAdirs": "Justera ADIRS",
+    "FinishBoarding": "Avsluta Boarding",
+    "OnScreenKeyboard": "Skärmtangentbord",
+    "SimBridge": "SimBridge",
+    "SimBridgeConnected": "Ansluten",
+    "SimBridgeConnecting": "Ansluter...",
+    "SimBridgeOff": "Av",
+    "SimBridgeOffline": "Ej tillgänglig",
+    "TT": {
+      "AlignAdirs": "Justera ADIRS direkt",
+      "AutoBrightness": "Slå på/av automatisk ljusstyrka",
+      "Brightness": "Ställ in flyPad-ljusstyrka",
+      "FinishBoarding": "Avsluta ombordstigningen omedelbart",
+      "OnScreenKeyboard": "Slå på/av skärmtangentbordet",
+      "PowerButton": "Stäng av",
+      "Settings": "Gå till flyPad inställningar",
+      "SimBridge": "Styr SimBridge-anslutning",
+      "Sleep": "Standby"
+    },
+    "Title": "Snabbinställningar"
+  },
   "Settings": {
     "About": {
       "Title": "Om"
@@ -520,10 +542,10 @@
     "SimOptions": {
       "Active": "Aktiv",
       "Auto": "Auto",
-      "Both": "Synchronized",
+      "Both": "Synkroniserad",
       "Calibrate": "Kalibrera",
       "Captain": "Captain",
-      "CockpitSeatUsedToControl": "Cockpit Seat Used To Control",
+      "CockpitSeatUsedToControl": "Cockpit stol som används för att styra",
       "ConesEnabled": "Säkerhetskoner",
       "Copilot": "Copilot",
       "DefaultBarometerUnit": "Standardbarometerenhet",
@@ -538,6 +560,7 @@
       "Off": "Av",
       "Save": "Spara",
       "Side": "Side",
+      "SimBridgeIp": "Extern SimBridge host-adress",
       "SimBridgePort": "Extern SimBridge-port",
       "SyncMsfsFlightPlan": "Synkronisera MSFS-färdplan",
       "ThrottleDetents": "Kalibrering av tryckspaken",
@@ -545,6 +568,11 @@
       "UseCalculatedIlsSignals": "Använd beräknade ILS-signaler",
       "WheelChocksEnabled": "Hjulklossar",
       "inHg": "inHg"
+    },
+    "ThirdPartyOptions": {
+      "GsxFuelEnabled": "GSX Fueling Synchronization",
+      "GsxPayloadEnabled": "GSX Payload Synchronization",
+      "Title": "3rd Party Options"
     },
     "ThrottleConfig": {
       "Apply": "Spara",
@@ -610,12 +638,24 @@
     "Sep": "Sep",
     "Sun": "Sön",
     "TT": {
+      "Brightness": "Click to change Brightness",
       "ConnectedToLocalApi": "Ansluten till SimBridge",
       "DisconnectedFromLocalApi": "Avklopplad från SimBridge",
+      "QuickControls": "Klicka för att öppna snabbinställningar",
       "TurnOffOrShutdownEfb": "Stäng av EFB"
     },
     "Thu": "Tor",
     "Tue": "Tis",
     "Wed": "Ons"
+  },
+  "VersionCheck": {
+    "CurrentVersionText": "Du använder $edition utgåvan med version:",
+    "LatestVersionText": "Senaste $edition versionen är",
+    "RecommendationText": "Vänligen uppdatera ditt flygplan via FlyByWire Installatören.",
+    "StatusBarWarning": "Inaktuell Flygplansversion",
+    "TT": {
+      "StatusBarWarning": "Please update your aircraft using the FlyByWire Installer."
+    },
+    "Title": "Ny version tillgänglig"
   }
 }
