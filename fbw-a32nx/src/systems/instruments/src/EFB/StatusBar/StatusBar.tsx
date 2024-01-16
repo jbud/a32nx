@@ -3,8 +3,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Wifi, WifiOff } from 'react-bootstrap-icons';
-import { useSimVar } from '@instruments/common/simVars';
-import { usePersistentNumberProperty, usePersistentProperty } from '@instruments/common/persistence';
+import { useSimVar, usePersistentNumberProperty, usePersistentProperty } from '@flybywiresim/fbw-sdk';
 import { useInterval } from '@flybywiresim/react-components';
 import { ClientState } from '@simbridge/index';
 import { t } from '../translation';
@@ -86,7 +85,7 @@ export const StatusBar = ({ batteryLevel, isCharging }: StatusBarProps) => {
         const std = new Date(parseInt(schedOut) * 1000);
         schedOutParsed = `${std.getUTCHours().toString().padStart(2, '0')}${std.getUTCMinutes().toString().padStart(2, '0')}Z`;
     }
-    const shutoffTimerRef = useRef<NodeJS.Timer | null>(null);
+    const shutoffTimerRef = useRef<number | null>(null);
 
     const [simBridgeConnected, setSimBridgeConnected] = useState(false);
 

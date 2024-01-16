@@ -1,5 +1,10 @@
-import { DisplayComponent, EventBus, FSComponent, Subject, Subscribable, VNode } from 'msfssdk';
-import { Arinc429Word } from '@shared/arinc429';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
+import { DisplayComponent, FSComponent, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { ArincEventBus, Arinc429Register, Arinc429Word, Arinc429WordData } from '@flybywiresim/fbw-sdk';
+
 import { getDisplayIndex } from 'instruments/src/PFD/PFD';
 import { FlightPathDirector } from './FlightPathDirector';
 import { FlightPathVector } from './FlightPathVector';
@@ -7,13 +12,13 @@ import { Arinc429Values } from './shared/ArincValueProvider';
 import { PFDSimvars } from './shared/PFDSimvarPublisher';
 
 interface AttitudeIndicatorFixedUpperProps {
-    bus: EventBus;
+    bus: ArincEventBus;
 }
 
 export class AttitudeIndicatorFixedUpper extends DisplayComponent<AttitudeIndicatorFixedUpperProps> {
     private roll = new Arinc429Word(0);
 
-    private pitch = new Arinc429Word(0);
+    private pitch: Arinc429WordData = Arinc429Register.empty();
 
     private visibilitySub = Subject.create('hidden');
 
@@ -82,14 +87,14 @@ export class AttitudeIndicatorFixedUpper extends DisplayComponent<AttitudeIndica
 }
 
 interface AttitudeIndicatorFixedCenterProps {
-    bus: EventBus;
+    bus: ArincEventBus;
     isAttExcessive: Subscribable<boolean>;
 }
 
 export class AttitudeIndicatorFixedCenter extends DisplayComponent<AttitudeIndicatorFixedCenterProps> {
     private roll = new Arinc429Word(0);
 
-    private pitch = new Arinc429Word(0);
+    private pitch: Arinc429WordData = Arinc429Register.empty();
 
     private visibilitySub = Subject.create('hidden');
 
@@ -173,7 +178,7 @@ export class AttitudeIndicatorFixedCenter extends DisplayComponent<AttitudeIndic
     }
 }
 
-class FDYawBar extends DisplayComponent<{ bus: EventBus }> {
+class FDYawBar extends DisplayComponent<{ bus: ArincEventBus }> {
     private lateralMode = 0;
 
     private fdYawCommand = 0;
@@ -255,7 +260,7 @@ class FDYawBar extends DisplayComponent<{ bus: EventBus }> {
     }
 }
 
-class FlightDirector extends DisplayComponent<{ bus: EventBus }> {
+class FlightDirector extends DisplayComponent<{ bus: ArincEventBus }> {
     private lateralMode = 0;
 
     private verticalMode = 0;
@@ -405,7 +410,7 @@ class FlightDirector extends DisplayComponent<{ bus: EventBus }> {
     }
 }
 
-class SidestickIndicator extends DisplayComponent<{ bus: EventBus }> {
+class SidestickIndicator extends DisplayComponent<{ bus: ArincEventBus }> {
     private captPitchCommand = new Arinc429Word(0);
 
     private foPitchCommand = new Arinc429Word(0);

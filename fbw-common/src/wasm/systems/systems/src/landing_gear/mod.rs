@@ -154,9 +154,9 @@ impl LandingGear {
             left_compression_id: context.get_identifier(Self::GEAR_LEFT_COMPRESSION.to_owned()),
             right_compression_id: context.get_identifier(Self::GEAR_RIGHT_COMPRESSION.to_owned()),
 
-            center_compression: Ratio::new::<percent>(0.),
-            left_compression: Ratio::new::<percent>(0.),
-            right_compression: Ratio::new::<percent>(0.),
+            center_compression: Ratio::default(),
+            left_compression: Ratio::default(),
+            right_compression: Ratio::default(),
         }
     }
 
@@ -400,6 +400,18 @@ impl LgciuGearExtension for LgciuSensorInputs {
             && self.nose_gear_up_and_locked
             && self.right_gear_up_and_locked
             && self.left_gear_up_and_locked
+    }
+    fn main_down_and_locked(&self) -> bool {
+        self.is_powered && self.right_gear_down_and_locked && self.left_gear_down_and_locked
+    }
+    fn main_up_and_locked(&self) -> bool {
+        self.is_powered && self.right_gear_up_and_locked && self.left_gear_up_and_locked
+    }
+    fn nose_down_and_locked(&self) -> bool {
+        self.is_powered && self.nose_gear_down_and_locked
+    }
+    fn nose_up_and_locked(&self) -> bool {
+        self.is_powered && self.nose_gear_up_and_locked
     }
 }
 impl LgciuDoorPosition for LgciuSensorInputs {
@@ -1163,6 +1175,18 @@ impl LgciuGearExtension for LandingGearControlInterfaceUnit {
     }
     fn all_up_and_locked(&self) -> bool {
         self.sensor_inputs.all_up_and_locked()
+    }
+    fn main_down_and_locked(&self) -> bool {
+        self.sensor_inputs.main_down_and_locked()
+    }
+    fn main_up_and_locked(&self) -> bool {
+        self.sensor_inputs.main_up_and_locked()
+    }
+    fn nose_down_and_locked(&self) -> bool {
+        self.sensor_inputs.nose_down_and_locked()
+    }
+    fn nose_up_and_locked(&self) -> bool {
+        self.sensor_inputs.nose_up_and_locked()
     }
 }
 impl LgciuDoorPosition for LandingGearControlInterfaceUnit {

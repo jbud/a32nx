@@ -3,7 +3,7 @@
 
 /* eslint-disable max-len */
 import React, { useEffect, useRef } from 'react';
-import { useSimVar, useSplitSimVar } from '@instruments/common/simVars';
+import { useSimVar, useSplitSimVar, MathUtils, usePersistentNumberProperty } from '@flybywiresim/fbw-sdk';
 import {
     ArrowDown,
     ArrowLeft,
@@ -18,9 +18,7 @@ import {
     TruckFlatbed,
 } from 'react-bootstrap-icons';
 import Slider from 'rc-slider';
-import { MathUtils } from '@shared/MathUtils';
 import { toast } from 'react-toastify';
-import { usePersistentNumberProperty } from '@instruments/common/persistence';
 import { t } from '../../translation';
 import { TooltipWrapper } from '../../UtilComponents/TooltipWrapper';
 import { PromptModal, useModals } from '../../UtilComponents/Modals/Modals';
@@ -606,14 +604,14 @@ export const PushbackPage = () => {
                         </TooltipWrapper>
                     </div>
 
-                    <div className={`flex flex-row items-center h-10 ${!pushbackActive && 'opacity-30 pointer-events-none'}`}>
-                        <TooltipWrapper text={t('Pushback.TT.UseControllerInput')}>
+                    <TooltipWrapper text={t('Pushback.TT.UseControllerInput')}>
+                        <div className={`flex flex-row items-center h-10 ${!pushbackActive && 'opacity-30 pointer-events-none'}`}>
                             <div className="mr-4">
                                 {t('Pushback.UseControllerInput')}
                             </div>
                             <Toggle value={!!useControllerInput} onToggle={(value) => (setUseControllerInput(value ? 1 : 0))} />
-                        </TooltipWrapper>
-                    </div>
+                        </div>
+                    </TooltipWrapper>
                 </div>
             </div>
         </>

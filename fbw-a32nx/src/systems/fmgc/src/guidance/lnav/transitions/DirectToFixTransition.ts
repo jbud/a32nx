@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0
 
-import { MathUtils } from '@shared/MathUtils';
+import { Constants, MathUtils, TurnDirection } from '@flybywiresim/fbw-sdk';
 import { CALeg } from '@fmgc/guidance/lnav/legs/CA';
 import { CFLeg } from '@fmgc/guidance/lnav/legs/CF';
 import { DFLeg } from '@fmgc/guidance/lnav/legs/DF';
@@ -13,11 +13,9 @@ import { VMLeg } from '@fmgc/guidance/lnav/legs/VM';
 import { Transition } from '@fmgc/guidance/lnav/Transition';
 import { GuidanceParameters, LateralPathGuidance } from '@fmgc/guidance/ControlLaws';
 import { Coordinates } from '@fmgc/flightplanning/data/geo';
-import { Constants } from '@shared/Constants';
 import { Geometry } from '@fmgc/guidance/Geometry';
 import { PathVector, PathVectorType } from '@fmgc/guidance/lnav/PathVector';
 import { LnavConfig } from '@fmgc/guidance/LnavConfig';
-import { TurnDirection } from '@fmgc/types/fstypes/FSEnums';
 import { bearingTo, distanceTo, placeBearingDistance } from 'msfs-geo';
 import { CILeg } from '../legs/CI';
 import {
@@ -289,9 +287,7 @@ export class DirectToFixTransition extends Transition {
         const straightDistance = distanceTo(this.lineStartPoint, this.lineEndPoint);
 
         if (this.hasArc) {
-            const circumference = 2 * Math.PI * this.radius;
-
-            return straightDistance + (circumference / 360 * this.arcSweepAngle);
+            return straightDistance + arcLength(this.radius, this.arcSweepAngle);
         }
 
         return straightDistance;

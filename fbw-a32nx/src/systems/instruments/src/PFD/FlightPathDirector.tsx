@@ -1,5 +1,10 @@
-import { ClockEvents, DisplayComponent, EventBus, FSComponent, Subscribable, VNode } from 'msfssdk';
-import { Arinc429Word } from '@shared/arinc429';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
+import { ClockEvents, DisplayComponent, FSComponent, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { ArincEventBus, Arinc429Word, Arinc429WordData } from '@flybywiresim/fbw-sdk';
+
 import { getDisplayIndex } from './PFD';
 import { calculateHorizonOffsetFromPitch } from './PFDUtils';
 import { Arinc429Values } from './shared/ArincValueProvider';
@@ -9,10 +14,10 @@ const DistanceSpacing = 15;
 const ValueSpacing = 10;
 
 interface FlightPathVectorData {
-    roll: Arinc429Word;
-    pitch: Arinc429Word;
-    fpa: Arinc429Word;
-    da: Arinc429Word;
+    roll: Arinc429WordData;
+    pitch: Arinc429WordData;
+    fpa: Arinc429WordData;
+    da: Arinc429WordData;
     activeVerticalMode: number;
     activeLateralMode: number;
     fdRoll: number;
@@ -20,7 +25,7 @@ interface FlightPathVectorData {
     fdActive: boolean;
 }
 
-export class FlightPathDirector extends DisplayComponent<{bus: EventBus, isAttExcessive: Subscribable<boolean>}> {
+export class FlightPathDirector extends DisplayComponent<{bus: ArincEventBus, isAttExcessive: Subscribable<boolean>}> {
     private data: FlightPathVectorData = {
         roll: new Arinc429Word(0),
         pitch: new Arinc429Word(0),

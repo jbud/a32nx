@@ -1,7 +1,11 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 /* eslint-disable max-len */
 import React, { useEffect } from 'react';
 import { round } from 'lodash';
-import { useSimVar } from '@instruments/common/simVars';
+import { useSimVar } from '@flybywiresim/fbw-sdk';
 import { t } from '../../translation';
 import { TooltipWrapper } from '../../UtilComponents/TooltipWrapper';
 import Card from '../../UtilComponents/Card/Card';
@@ -113,7 +117,7 @@ export const Data = ({ className }: {className: string}) => {
             <div className="w-full h-1 bg-theme-accent rounded-full" />
 
             {calculationTypes.map(({ label, placeholder, type, syncValue }) => (!calculationInput || calculationType === type) && (
-                <div>
+                <div key={type}>
                     <p>{label}</p>
                     <div className="flex flex-row">
                         <SimpleInput

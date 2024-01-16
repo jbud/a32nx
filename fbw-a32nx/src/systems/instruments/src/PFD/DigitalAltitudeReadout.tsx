@@ -1,4 +1,11 @@
-import { DisplayComponent, EventBus, FSComponent, NodeReference, Subject, Subscribable, VNode } from 'msfssdk';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
+import { ConsumerSubject, DisplayComponent, FSComponent, MappedSubject, NodeReference, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { ArincEventBus, Arinc429RegisterSubject } from '@flybywiresim/fbw-sdk';
+
+import { SimplaneBaroMode, SimplaneValues } from 'instruments/src/PFD/shared/SimplaneValueProvider';
 import { Arinc429Values } from './shared/ArincValueProvider';
 import { PFDSimvars } from './shared/PFDSimvarPublisher';
 
@@ -48,17 +55,17 @@ const TenThousandsDigit = (value: number) => {
 };
 
 interface DigitalAltitudeReadoutProps {
-    bus: EventBus;
+    bus: ArincEventBus;
 }
 
 export class DigitalAltitudeReadout extends DisplayComponent<DigitalAltitudeReadoutProps> {
-    private mda = 0;
+    private readonly mda = Arinc429RegisterSubject.createEmpty();
 
-    private altitude = 0;
+    private readonly altitude = Arinc429RegisterSubject.createEmpty();
+
+    private readonly baroMode = ConsumerSubject.create<SimplaneBaroMode>(null, 'QNH');
 
     private isNegativeSub = Subject.create('hidden')
-
-    private colorSub = Subject.create('')
 
     private showThousandsZeroSub = Subject.create(false);
 
@@ -76,22 +83,20 @@ export class DigitalAltitudeReadout extends DisplayComponent<DigitalAltitudeRead
 
     private tenThousandsPosition = Subject.create(0);
 
+    private readonly color = MappedSubject.create(
+        ([mda, altitude]) => (((!mda.isNoComputedData() && !mda.isFailureWarning()) && altitude.value < mda.value) ? 'Amber' : 'Green'),
+        this.mda,
+        this.altitude,
+    );
+
     onAfterRender(node: VNode): void {
         super.onAfterRender(node);
 
-        const sub = this.props.bus.getSubscriber<PFDSimvars & Arinc429Values>();
+        const sub = this.props.bus.getArincSubscriber<Arinc429Values & PFDSimvars & SimplaneValues>();
 
-        sub.on('mda').whenChanged().handle((mda) => {
-            this.mda = mda;
-            this.updateColor();
-        });
-
-        sub.on('altitudeAr').handle((altitude) => {
+        this.altitude.sub((altitude) => {
             const isNegative = altitude.value < 0;
             this.isNegativeSub.set(isNegative ? 'visible' : 'hidden');
-
-            this.altitude = altitude.value;
-            this.updateColor();
 
             const absAlt = Math.abs(Math.max(Math.min(altitude.value, 50000), -1500));
             const tensDigits = absAlt % 100;
@@ -129,11 +134,12 @@ export class DigitalAltitudeReadout extends DisplayComponent<DigitalAltitudeRead
 
             this.showThousandsZeroSub.set(showThousandsZero);
         });
-    }
 
-    private updateColor() {
-        const color = (this.mda !== 0 && this.altitude < this.mda) ? 'Amber' : 'Green';
-        this.colorSub.set(color);
+        sub.on('fmMdaRaw').handle(this.mda.setWord.bind(this.mda));
+        // FIXME once the ADR has the proper baro alt implementation this will need filtered altitude with source selection
+        sub.on('baroCorrectedAltitude').handle(this.altitude.setWord.bind(this.altitude));
+
+        this.baroMode.setConsumer(sub.on('baroMode'));
     }
 
     render(): VNode {
@@ -145,7 +151,7 @@ export class DigitalAltitudeReadout extends DisplayComponent<DigitalAltitudeRead
                             type="ten-thousands"
                             position={this.tenThousandsPosition}
                             value={this.tenThousandsValue}
-                            color={this.colorSub}
+                            color={this.color}
                             showZero={Subject.create(false)}
                             getText={TenThousandsDigit}
                             valueSpacing={1}
@@ -157,7 +163,7 @@ export class DigitalAltitudeReadout extends DisplayComponent<DigitalAltitudeRead
                             type="thousands"
                             position={this.thousandsPosition}
                             value={this.thousandsValue}
-                            color={this.colorSub}
+                            color={this.color}
                             showZero={this.showThousandsZeroSub}
                             getText={ThousandsDigit}
                             valueSpacing={1}
@@ -170,7 +176,7 @@ export class DigitalAltitudeReadout extends DisplayComponent<DigitalAltitudeRead
                             type="hundreds"
                             position={this.hundredsPosition}
                             value={this.hundredsValue}
-                            color={this.colorSub}
+                            color={this.color}
                             getText={HundredsDigit}
                             valueSpacing={1}
                             distanceSpacing={7}
@@ -184,7 +190,7 @@ export class DigitalAltitudeReadout extends DisplayComponent<DigitalAltitudeRead
                             amount={4}
                             position={this.tenDigitsSub}
                             value={this.tenDigitsSub}
-                            color={this.colorSub}
+                            color={this.color}
                             getText={TensDigits}
                             valueSpacing={20}
                             distanceSpacing={4.7}
@@ -222,16 +228,11 @@ class Drum extends DisplayComponent<DrumProperties> {
     private digitRefElements: NodeReference<SVGTextElement>[] = [];
 
     private buildElements(amount: number) {
-        const highestPosition = Math.round((this.position + this.props.displayRange) / this.props.valueSpacing) * this.props.valueSpacing;
-
         const highestValue = Math.round((this.value + this.props.displayRange) / this.props.valueSpacing) * this.props.valueSpacing;
 
         const graduationElements: SVGTextElement[] = [];
 
         for (let i = 0; i < amount; i++) {
-            const elementPosition = highestPosition - i * this.props.valueSpacing;
-            const offset = -elementPosition * this.props.distanceSpacing / this.props.valueSpacing;
-
             let elementVal = highestValue - i * this.props.valueSpacing;
             if (!this.showZero && elementVal === 0) {
                 elementVal = NaN;
@@ -240,13 +241,13 @@ class Drum extends DisplayComponent<DrumProperties> {
             const digitRef = FSComponent.createRef<SVGTextElement>();
 
             if (this.props.type === 'hundreds') {
-                graduationElements.push(<text ref={digitRef} transform={`translate(0 ${offset})`} class={`FontLargest MiddleAlign ${this.color}`} x="11.631" y="7.1" />);
+                graduationElements.push(<text ref={digitRef} style="transform: rotate3d(0px, 0px, 0px)" class={`FontLargest MiddleAlign ${this.color}`} x="11.631" y="7.1" />);
             } else if (this.props.type === 'thousands') {
-                graduationElements.push(<text ref={digitRef} transform={`translate(0 ${offset})`} class={`FontLargest MiddleAlign ${this.color}`} x="7.18" y="7.1" />);
+                graduationElements.push(<text ref={digitRef} style="transform: rotate3d(0px, 0px, 0px)" class={`FontLargest MiddleAlign ${this.color}`} x="7.18" y="7.1" />);
             } else if (this.props.type === 'ten-thousands') {
-                graduationElements.push(<text ref={digitRef} transform={`translate(0 ${offset})`} class={`FontLargest MiddleAlign ${this.color}`} x="2.498" y="7.1" />);
+                graduationElements.push(<text ref={digitRef} style="transform: rotate3d(0px, 0px, 0px)" class={`FontLargest MiddleAlign ${this.color}`} x="2.498" y="7.1" />);
             } else if (this.props.type === 'tens') {
-                graduationElements.push(<text ref={digitRef} transform={`translate(0 ${offset})`} class={`FontSmallest MiddleAlign ${this.color}`} x="4.5894" y="8.9133" />);
+                graduationElements.push(<text ref={digitRef} style="transform: rotate3d(0px, 0px, 0px)" class={`FontSmallest MiddleAlign ${this.color}`} x="4.5894" y="8.9133" />);
             }
             this.digitRefElements.push(digitRef);
         }
@@ -255,9 +256,7 @@ class Drum extends DisplayComponent<DrumProperties> {
     }
 
     private getOffset(position: number) {
-        const className = `translate(0 ${position * this.props.distanceSpacing / this.props.valueSpacing})`;
-
-        this.gRef.instance.setAttribute('transform', className);
+        this.gRef.instance.style.transform = `translate3d(0px, ${position * this.props.distanceSpacing / this.props.valueSpacing}px, 0px)`;
     }
 
     private updateValue() {

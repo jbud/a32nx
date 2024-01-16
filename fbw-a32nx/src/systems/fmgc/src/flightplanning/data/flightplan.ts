@@ -1,7 +1,7 @@
 //  Copyright (c) 2021 FlyByWire Simulations
 //  SPDX-License-Identifier: GPL-3.0
 
-import { TurnDirection } from '@fmgc/types/fstypes/FSEnums';
+import { TurnDirection } from '@flybywiresim/fbw-sdk';
 
 export interface WaypointStats {
     /**
@@ -65,4 +65,12 @@ export enum HoldType {
     Computed = 0,
     Database = 1,
     Pilot = 2,
+}
+
+export interface StepData {
+    distanceBeforeTermination: NauticalMiles,
+
+    toAltitude: Feet,
+
+    ident: string,
 }

@@ -1,6 +1,9 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 import React, { useState } from 'react';
-import { useSimVar, useInteractionSimVar } from '@instruments/common/simVars';
-import { useInteractionEvent } from '@instruments/common/hooks';
+import { useSimVar, useInteractionSimVar, useInteractionEvent } from '@flybywiresim/fbw-sdk';
 import { TransceiverType } from './StandbyFrequency';
 import { VhfRadioPanel } from './VhfRadioPanel';
 import { NavRadioPanel } from './NavRadioPanel';
@@ -97,20 +100,23 @@ const PoweredRadioPanel = (props: Props) => {
         }
     });
 
-    /**
-     * MLS IMPLEMENTED IN THE XML BEHAVIOURS
-     * BUT DISABLED HERE SINCE THERE IS NOT ENOUGH REFERENCES
-     */
-    // useInteractionEvent(`A32NX_RMP_${props.side}_MLS_BUTTON_PRESSED`, () => {
-    //     if (navButtonPressed) {
-    //         setPanelMode(8);
-    //         setNavTransceiverType(TransceiverType.ILS);
-    //     }
-    // });
+    useInteractionEvent(`A32NX_RMP_${props.side}_GLS_BUTTON_PRESSED`, () => {
+        if (navButtonPressed) {
+            setPanelMode(8);
+            setNavTransceiverType(TransceiverType.GLS);
+        }
+    });
+
+    useInteractionEvent(`A32NX_RMP_${props.side}_MLS_BUTTON_PRESSED`, () => {
+        if (navButtonPressed) {
+            setPanelMode(9);
+            setNavTransceiverType(TransceiverType.MLS);
+        }
+    });
 
     useInteractionEvent(`A32NX_RMP_${props.side}_ADF_BUTTON_PRESSED`, () => {
         if (navButtonPressed) {
-            setPanelMode(9);
+            setPanelMode(10);
             setNavTransceiverType(TransceiverType.ADF);
         }
     });

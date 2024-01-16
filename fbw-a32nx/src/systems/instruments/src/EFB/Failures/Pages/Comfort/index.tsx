@@ -1,4 +1,8 @@
-import { AtaChapterNumber, AtaChaptersTitle, AtaChaptersDescription } from '@shared/ata';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
+import { AtaChapterNumber, AtaChaptersTitle, AtaChaptersDescription } from '@flybywiresim/fbw-sdk';
 import React from 'react';
 import { Route } from 'react-router';
 import { Link } from 'react-router-dom';
@@ -65,6 +69,7 @@ export const ComfortUI = ({ filteredChapters, allChapters, failures }: ComfortUI
             <ScrollableContainer height={48}>
                 {filteredChapters.map((chapter) => (
                     <ATAChapterCard
+                        key={chapter}
                         ataNumber={chapter}
                         title={AtaChaptersTitle[chapter]}
                         description={AtaChaptersDescription[chapter]}
@@ -79,7 +84,10 @@ export const ComfortUI = ({ filteredChapters, allChapters, failures }: ComfortUI
         </Route>
 
         {allChapters.map((chapter) => (
-            <Route path={`/failures/comfort/${chapter.toString()}`}>
+            <Route
+                key={chapter}
+                path={`/failures/comfort/${chapter.toString()}`}
+            >
                 <AtaChapterPage chapter={chapter} failures={failures} />
             </Route>
         ))}

@@ -1,6 +1,9 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 import React, { useEffect, useRef, useState } from 'react';
-import { useInteractionSimVar, useSimVar } from '@instruments/common/simVars';
-import { useInteractionEvent } from '@instruments/common/hooks';
+import { useInteractionSimVar, useSimVar, useInteractionEvent } from '@flybywiresim/fbw-sdk';
 import { render } from '../Common';
 import { ISISDisplayUnit } from './ISISDisplayUnit';
 import { ArtificialHorizonDisplay } from './ArtificialHorizonDisplay';
@@ -12,9 +15,7 @@ import './style.scss';
 
 export const ISISDisplay: React.FC = () => {
     const [ias] = useSimVar('AIRSPEED INDICATED', 'knots', 200);
-    const [bugsActive, setBugsActive] = useInteractionSimVar('L:A32NX_ISIS_BUGS_ACTIVE', 'Boolean', 'H:A32NX_ISIS_BUGS_PRESSED');
-    const isBrightnessUpPressed = useRef(false);
-    const isBrightnessDownPressed = useRef(false);
+    const [bugsActive, setBugsActive] = useInteractionSimVar('L:A32NX_ISIS_BUGS_ACTIVE', 'Boolean', ['H:A32NX_ISIS_BUGS_PRESSED', 'H:A32NX_ISIS_BUGS_RELEASED']);
 
     const lastPilotInput = useRef(0);
     const [bugs, bugSetters] = useBugs();
@@ -25,8 +26,10 @@ export const ISISDisplay: React.FC = () => {
     useInteractionEvent('A32NX_ISIS_KNOB_PRESSED', () => {
         lastPilotInput.current = Date.now();
 
-        selectedBug.isActive = !selectedBug.isActive;
-        bugSetters[selectedIndex](selectedBug);
+        if (bugsActive) {
+            selectedBug.isActive = !selectedBug.isActive;
+            bugSetters[selectedIndex](selectedBug);
+        }
     });
 
     useInteractionEvent('A32NX_ISIS_KNOB_CLOCKWISE', () => {
@@ -39,8 +42,10 @@ export const ISISDisplay: React.FC = () => {
             return;
         }
 
-        selectedBug.value = Math.max(Math.min(selectedBug.value + selectedBug.increment, selectedBug.max), selectedBug.min);
-        bugSetters[selectedIndex](selectedBug);
+        if (bugsActive) {
+            selectedBug.value = Math.max(Math.min(selectedBug.value + selectedBug.increment, selectedBug.max), selectedBug.min);
+            bugSetters[selectedIndex](selectedBug);
+        }
     });
 
     useInteractionEvent('A32NX_ISIS_KNOB_ANTI_CLOCKWISE', () => {
@@ -53,30 +58,26 @@ export const ISISDisplay: React.FC = () => {
             return;
         }
 
-        selectedBug.value = Math.max(Math.min(selectedBug.value - selectedBug.increment, selectedBug.max), selectedBug.min);
-        bugSetters[selectedIndex](selectedBug);
+        if (bugsActive) {
+            selectedBug.value = Math.max(Math.min(selectedBug.value - selectedBug.increment, selectedBug.max), selectedBug.min);
+            bugSetters[selectedIndex](selectedBug);
+        }
     });
 
     useInteractionEvent('A32NX_ISIS_PLUS_PRESSED', () => {
         lastPilotInput.current = Date.now();
 
-        isBrightnessUpPressed.current = !isBrightnessUpPressed.current;
-        if (!isBrightnessUpPressed.current) {
-            return;
+        if (bugsActive) {
+            setSelectedIndex((7 + selectedIndex) % 6);
         }
-
-        setSelectedIndex((7 + selectedIndex) % 6);
     });
 
     useInteractionEvent('A32NX_ISIS_MINUS_PRESSED', () => {
         lastPilotInput.current = Date.now();
 
-        isBrightnessDownPressed.current = !isBrightnessDownPressed.current;
-        if (!isBrightnessDownPressed.current) {
-            return;
+        if (bugsActive) {
+            setSelectedIndex((5 + selectedIndex) % 6);
         }
-
-        setSelectedIndex((5 + selectedIndex) % 6);
     });
 
     useEffect(() => {

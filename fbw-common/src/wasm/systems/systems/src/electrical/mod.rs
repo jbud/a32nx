@@ -2,22 +2,29 @@
 
 mod battery;
 mod battery_charge_limiter;
+mod battery_charge_rectifier_unit;
 pub mod consumption;
 mod emergency_generator;
 mod engine_generator;
 mod external_power_source;
+mod ram_air_turbine;
 mod static_inverter;
 mod transformer_rectifier;
+
 use std::{
     cell::{Ref, RefCell},
     rc::Rc,
     time::Duration,
 };
 
-use crate::simulation::{InitContext, VariableIdentifier};
+use crate::{
+    failures::{Failure, FailureType},
+    simulation::{InitContext, VariableIdentifier},
+};
 use crate::{
     shared::{
-        ConsumePower, ElectricalBusType, ElectricalBuses, PotentialOrigin, PowerConsumptionReport,
+        ConsumePower, ElectricalBusType, ElectricalBuses, EmergencyElectricalState,
+        PotentialOrigin, PowerConsumptionReport,
     },
     simulation::{
         SimulationElement, SimulationElementVisitor, SimulatorWriter, UpdateContext, Write,
@@ -25,6 +32,7 @@ use crate::{
 };
 pub use battery::Battery;
 pub use battery_charge_limiter::BatteryChargeLimiter;
+pub use battery_charge_rectifier_unit::BatteryChargeRectifierUnit;
 pub use emergency_generator::EmergencyGenerator;
 pub use engine_generator::{
     EngineGenerator, INTEGRATED_DRIVE_GENERATOR_STABILIZATION_TIME_IN_MILLISECONDS,
@@ -34,6 +42,8 @@ use fxhash::{FxHashMap, FxHashSet};
 pub use static_inverter::StaticInverter;
 pub use transformer_rectifier::TransformerRectifier;
 use uom::si::{electric_potential::volt, f64::*, power::watt, velocity::knot};
+
+pub use ram_air_turbine::{GeneratorControlUnit, RamAirTurbine};
 
 pub mod test;
 
@@ -104,6 +114,7 @@ pub struct ElectricalBus {
     bus_potential_normal_id: VariableIdentifier,
     potential: ElectricPotential,
     bus_type: ElectricalBusType,
+    failure: Failure,
 }
 impl ElectricalBus {
     pub fn new(context: &mut InitContext, bus_type: ElectricalBusType) -> ElectricalBus {
@@ -114,6 +125,7 @@ impl ElectricalBus {
                 .get_identifier(format!("ELEC_{}_BUS_POTENTIAL_NORMAL", bus_type)),
             potential: ElectricPotential::new::<volt>(0.),
             bus_type,
+            failure: Failure::new(FailureType::ElectricalBus(bus_type)),
         }
     }
 
@@ -131,10 +143,15 @@ impl ElectricalElement for ElectricalBus {
     }
 
     fn is_conductive(&self) -> bool {
-        true
+        !self.failure.is_active()
     }
 }
 impl SimulationElement for ElectricalBus {
+    fn accept<T: SimulationElementVisitor>(&mut self, visitor: &mut T) {
+        self.failure.accept(visitor);
+        visitor.visit(self);
+    }
+
     fn write(&self, writer: &mut SimulatorWriter) {
         if let ElectricalBusType::Sub(_) = self.bus_type {
             // Sub buses are not written towards the simulator. See the
@@ -275,6 +292,7 @@ impl EmergencyElectrical {
         electricity: &Electricity,
         ac_electrical_system: &impl AlternatingCurrentElectricalSystem,
     ) {
+        // TODO A380 has also total flame out condition: all engines N3 under 50% throws emergency elec
         if !ac_electrical_system.any_non_essential_bus_powered(electricity)
             && context.indicated_airspeed() > Velocity::new::<knot>(100.)
         {
@@ -295,6 +313,11 @@ impl EmergencyElectrical {
 impl Default for EmergencyElectrical {
     fn default() -> Self {
         Self::new()
+    }
+}
+impl EmergencyElectricalState for EmergencyElectrical {
+    fn is_in_emergency_elec(&self) -> bool {
+        self.is_active()
     }
 }
 

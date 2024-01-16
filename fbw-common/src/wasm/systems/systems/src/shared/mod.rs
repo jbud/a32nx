@@ -1,16 +1,20 @@
 use crate::{
-    electrical::{ElectricalElement, ElectricitySource, Potential},
+    apu::ApuGenerator,
+    electrical::{ElectricalElement, Potential},
     pneumatic::{EngineModeSelector, EngineState, PneumaticValveSignal},
     simulation::UpdateContext,
 };
 
+use arinc429::Arinc429Word;
 use nalgebra::Vector3;
 use num_derive::FromPrimitive;
 use std::{cell::Ref, fmt::Display, time::Duration};
 use uom::si::{
     f64::*,
     length::meter,
+    mass_rate::kilogram_per_second,
     pressure::{hectopascal, pascal},
+    ratio::ratio,
     thermodynamic_temperature::{degree_celsius, kelvin},
 };
 
@@ -20,7 +24,11 @@ pub mod update_iterator;
 
 mod random;
 pub use random::*;
+
 pub mod arinc429;
+pub mod arinc825;
+pub mod can_bus;
+pub mod power_supply_relay;
 
 pub trait ReservoirAirPressure {
     fn green_reservoir_pressure(&self) -> Pressure;
@@ -28,10 +36,9 @@ pub trait ReservoirAirPressure {
     fn yellow_reservoir_pressure(&self) -> Pressure;
 }
 
-pub trait AuxiliaryPowerUnitElectrical:
-    ControllerSignal<ContactorSignal> + ApuAvailable + ElectricalElement + ElectricitySource
-{
-    fn output_within_normal_parameters(&self) -> bool;
+pub trait AuxiliaryPowerUnitElectrical: ControllerSignal<ContactorSignal> + ApuAvailable {
+    type Generator: ApuGenerator;
+    fn generator(&self, number: usize) -> &Self::Generator;
 }
 
 pub trait ApuAvailable {
@@ -58,7 +65,7 @@ pub trait ApuStart {
     fn start_is_on(&self) -> bool;
 }
 
-pub trait HydraulicGeneratorControlUnit {
+pub trait EmergencyGeneratorControlUnit {
     fn max_allowed_power(&self) -> Power;
     fn motor_speed(&self) -> AngularVelocity;
 }
@@ -71,8 +78,21 @@ pub trait EmergencyGeneratorPower {
     fn generated_power(&self) -> Power;
 }
 
+pub trait RamAirTurbineController {
+    fn should_deploy(&self) -> bool;
+}
+
+pub trait AngularSpeedSensor {
+    fn speed(&self) -> AngularVelocity;
+}
+
 pub trait FeedbackPositionPickoffUnit {
     fn angle(&self) -> Angle;
+}
+
+pub trait CargoDoorLocked {
+    fn fwd_cargo_door_locked(&self) -> bool;
+    fn aft_cargo_door_locked(&self) -> bool;
 }
 
 pub trait LgciuWeightOnWheels {
@@ -91,6 +111,10 @@ pub trait LgciuWeightOnWheels {
 pub trait LgciuGearExtension {
     fn all_down_and_locked(&self) -> bool;
     fn all_up_and_locked(&self) -> bool;
+    fn main_down_and_locked(&self) -> bool;
+    fn main_up_and_locked(&self) -> bool;
+    fn nose_down_and_locked(&self) -> bool;
+    fn nose_up_and_locked(&self) -> bool;
 }
 
 pub trait LgciuDoorPosition {
@@ -116,6 +140,10 @@ pub trait TrimmableHorizontalStabilizer {
 pub trait LgciuInterface:
     LgciuWeightOnWheels + LgciuGearExtension + LgciuDoorPosition + LgciuGearControl + LandingGearHandle
 {
+}
+
+pub trait ReverserPosition {
+    fn reverser_position(&self) -> Ratio;
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -176,9 +204,18 @@ pub trait EngineUncorrectedN2 {
     fn uncorrected_n2(&self) -> Ratio;
 }
 
-pub trait Cabin {
+pub trait CabinAltitude {
     fn altitude(&self) -> Length;
-    fn pressure(&self) -> Pressure;
+}
+
+pub trait CabinSimulation {
+    fn cabin_temperature(&self) -> Vec<ThermodynamicTemperature>;
+    fn exterior_pressure(&self) -> Pressure {
+        Pressure::new::<hectopascal>(1013.25)
+    }
+    fn cabin_pressure(&self) -> Pressure {
+        Pressure::new::<hectopascal>(1013.25)
+    }
 }
 
 pub trait PneumaticBleed {
@@ -187,23 +224,29 @@ pub trait PneumaticBleed {
 }
 
 pub trait EngineStartState {
-    fn left_engine_state(&self) -> EngineState;
-    fn right_engine_state(&self) -> EngineState;
+    fn engine_state(&self, engine_number: usize) -> EngineState;
     fn engine_mode_selector(&self) -> EngineModeSelector;
 }
 
-pub trait EngineBleedPushbutton {
-    fn engine_bleed_pushbuttons_are_auto(&self) -> [bool; 2];
+pub trait EngineBleedPushbutton<const N: usize> {
+    fn engine_bleed_pushbuttons_are_auto(&self) -> [bool; N];
 }
 
 pub trait PackFlowValveState {
-    // Pack id is 1 or 2
-    fn pack_flow_valve_open_amount(&self, pack_id: usize) -> Ratio;
+    /// Pack flow valve id is 1, 2, 3 or 4
+    fn pack_flow_valve_is_open(&self, pack_id: usize) -> bool;
     fn pack_flow_valve_air_flow(&self, pack_id: usize) -> MassRate;
+    fn pack_flow_valve_inlet_pressure(&self, pack_id: usize) -> Option<Pressure>;
 }
 
-pub trait GroundSpeed {
-    fn ground_speed(&self) -> Velocity;
+pub trait AdirsMeasurementOutputs {
+    fn is_fully_aligned(&self, adiru_number: usize) -> bool;
+    fn latitude(&self, adiru_number: usize) -> Arinc429Word<Angle>;
+    fn longitude(&self, adiru_number: usize) -> Arinc429Word<Angle>;
+    fn heading(&self, adiru_number: usize) -> Arinc429Word<Angle>;
+    fn true_heading(&self, adiru_number: usize) -> Arinc429Word<Angle>;
+    fn vertical_speed(&self, adiru_number: usize) -> Arinc429Word<Velocity>;
+    fn altitude(&self, adiru_number: usize) -> Arinc429Word<Length>;
 }
 
 pub trait AdirsDiscreteOutputs {
@@ -222,6 +265,7 @@ pub enum GearWheel {
 pub trait SectionPressure {
     fn pressure(&self) -> Pressure;
     fn pressure_downstream_leak_valve(&self) -> Pressure;
+    fn pressure_downstream_priority_valve(&self) -> Pressure;
     fn is_pressure_switch_pressurised(&self) -> bool;
 }
 
@@ -280,6 +324,7 @@ pub enum AirbusElectricPumpId {
     Green,
     Blue,
     Yellow,
+    GreenAux,
 }
 impl Display for AirbusElectricPumpId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -291,8 +336,19 @@ impl Display for AirbusElectricPumpId {
             AirbusElectricPumpId::Green => write!(f, "GREEN"),
             AirbusElectricPumpId::Blue => write!(f, "BLUE"),
             AirbusElectricPumpId::Yellow => write!(f, "YELLOW"),
+            AirbusElectricPumpId::GreenAux => write!(f, "GREEN_AUX"),
         }
     }
+}
+
+/// Access to all aircraft surfaces positions
+pub trait SurfacesPositions {
+    fn left_spoilers_positions(&self) -> &[f64];
+    fn right_spoilers_positions(&self) -> &[f64];
+    fn left_ailerons_positions(&self) -> &[f64];
+    fn right_ailerons_positions(&self) -> &[f64];
+    fn left_flaps_position(&self) -> f64;
+    fn right_flaps_position(&self) -> f64;
 }
 
 /// The common types of electrical buses within Airbus aircraft.
@@ -304,12 +360,14 @@ pub enum ElectricalBusType {
     AlternatingCurrentEssentialShed,
     AlternatingCurrentStaticInverter,
     AlternatingCurrentGndFltService,
+    AlternatingCurrentNamed(&'static str),
     DirectCurrent(u8),
     DirectCurrentEssential,
     DirectCurrentEssentialShed,
     DirectCurrentBattery,
     DirectCurrentHot(u8),
     DirectCurrentGndFltService,
+    DirectCurrentNamed(&'static str),
 
     /// A sub bus is a subsection of a larger bus. An example of
     /// a sub bus is the A320's 202PP, which is a sub bus of DC BUS 2 (2PP).
@@ -333,12 +391,14 @@ impl Display for ElectricalBusType {
             ElectricalBusType::AlternatingCurrentEssentialShed => write!(f, "AC_ESS_SHED"),
             ElectricalBusType::AlternatingCurrentStaticInverter => write!(f, "AC_STAT_INV"),
             ElectricalBusType::AlternatingCurrentGndFltService => write!(f, "AC_GND_FLT_SVC"),
+            ElectricalBusType::AlternatingCurrentNamed(name) => write!(f, "{}", name),
             ElectricalBusType::DirectCurrent(number) => write!(f, "DC_{}", number),
             ElectricalBusType::DirectCurrentEssential => write!(f, "DC_ESS"),
             ElectricalBusType::DirectCurrentEssentialShed => write!(f, "DC_ESS_SHED"),
             ElectricalBusType::DirectCurrentBattery => write!(f, "DC_BAT"),
             ElectricalBusType::DirectCurrentHot(number) => write!(f, "DC_HOT_{}", number),
             ElectricalBusType::DirectCurrentGndFltService => write!(f, "DC_GND_FLT_SVC"),
+            ElectricalBusType::DirectCurrentNamed(name) => write!(f, "{}", name),
             ElectricalBusType::Sub(name) => write!(f, "SUB_{}", name),
         }
     }
@@ -407,20 +467,27 @@ pub trait ConsumePower: PowerConsumptionReport {
 pub trait ControllerSignal<S> {
     fn signal(&self) -> Option<S>;
 }
+#[macro_export]
+macro_rules! valve_signal_implementation {
+    ($signal_type: ty) => {
+        impl PneumaticValveSignal for $signal_type {
+            fn new(target_open_amount: Ratio) -> Self {
+                Self { target_open_amount }
+            }
+
+            fn target_open_amount(&self) -> Ratio {
+                self.target_open_amount
+            }
+        }
+    };
+}
 
 #[derive(Clone, Copy)]
 pub struct ApuBleedAirValveSignal {
     target_open_amount: Ratio,
 }
-impl PneumaticValveSignal for ApuBleedAirValveSignal {
-    fn new(target_open_amount: Ratio) -> Self {
-        Self { target_open_amount }
-    }
 
-    fn target_open_amount(&self) -> Ratio {
-        self.target_open_amount
-    }
-}
+valve_signal_implementation!(ApuBleedAirValveSignal);
 
 pub trait PneumaticValve {
     fn is_open(&self) -> bool;
@@ -519,12 +586,7 @@ impl DelayedPulseTrueLogicGate {
 
         let gate_out = self.true_delayed_gate.output();
 
-        if gate_out && !self.last_gate_output {
-            self.output = true;
-        } else {
-            self.output = false;
-        }
-
+        self.output = gate_out && !self.last_gate_output;
         self.last_gate_output = gate_out;
     }
 
@@ -561,6 +623,26 @@ impl DelayedFalseLogicGate {
 
     pub fn output(&self) -> bool {
         self.expression_result || self.delay > self.false_duration
+    }
+}
+
+/// The latched logic gate latches the true result of a given expression.
+/// As soon as the output is true it stays true until it is reset.
+#[derive(Default)]
+pub struct LatchedTrueLogicGate {
+    expression_result: bool,
+}
+impl LatchedTrueLogicGate {
+    pub fn update(&mut self, expression_result: bool) {
+        self.expression_result = self.expression_result || expression_result;
+    }
+
+    pub fn reset(&mut self) {
+        self.expression_result = false;
+    }
+
+    pub fn output(&self) -> bool {
+        self.expression_result
     }
 }
 
@@ -640,6 +722,40 @@ pub fn height_over_ground(
     Length::new::<meter>(offset_including_plane_rotation[1]) + context.plane_height_over_ground()
 }
 
+// Gets the local acceleration at a point away from plane reference point, including rotational effects (tangential/centripetal)
+// Warning: It EXLCLUDES PLANE LOCAL CG ACCELERATION. Add to plane acceleration to have total local acceleration at this point
+//
+// For reference rotational velocity and acceleration from MSFS are:
+//      X axis pitch up negative
+//      Y axis yaw left negative
+//      Z axis roll right negative
+//
+// Acceleration returned is local to plane reference with
+//      X negative left positive right
+//      Y negative down positive up
+//      Z negative aft positive forward
+pub fn local_acceleration_at_plane_coordinate(
+    context: &UpdateContext,
+    offset_from_plane_reference: Vector3<f64>,
+) -> Vector3<f64> {
+    // If less than 10cm from center of rotation we don't consider rotational effect
+    if offset_from_plane_reference.norm() < 0.01 {
+        return Vector3::default();
+    }
+
+    let tangential_velocity_of_point =
+        offset_from_plane_reference.cross(&-context.rotation_velocity_rad_s());
+    let tangential_acceleration_of_point =
+        offset_from_plane_reference.cross(&-context.rotation_acceleration_rad_s2());
+
+    let radial_norm_vector = -offset_from_plane_reference.normalize();
+
+    let centripetal_acceleration = radial_norm_vector
+        * (tangential_velocity_of_point.norm().powi(2) / offset_from_plane_reference.norm());
+
+    centripetal_acceleration + tangential_acceleration_of_point
+}
+
 pub struct InternationalStandardAtmosphere;
 impl InternationalStandardAtmosphere {
     const TEMPERATURE_LAPSE_RATE: f64 = 0.0065;
@@ -662,6 +778,17 @@ impl InternationalStandardAtmosphere {
                         / Self::GAS_CONSTANT_DRY_AIR
                         / Self::TEMPERATURE_LAPSE_RATE,
                 )
+    }
+
+    pub fn altitude_from_pressure(pressure: Pressure) -> Length {
+        Length::new::<meter>(
+            Self::GROUND_TEMPERATURE_KELVIN
+                / ((pressure.get::<pascal>() / Self::GROUND_PRESSURE_PASCAL).powf(
+                    -Self::TEMPERATURE_LAPSE_RATE * Self::GAS_CONSTANT_DRY_AIR
+                        / Self::GRAVITY_ACCELERATION,
+                ))
+                - Self::GROUND_TEMPERATURE_KELVIN,
+        ) / (-Self::TEMPERATURE_LAPSE_RATE)
     }
 
     pub fn temperature_at_altitude(altitude: Length) -> ThermodynamicTemperature {
@@ -719,11 +846,58 @@ impl Average for Pressure {
             count += 1;
         }
 
-        if count > 0 {
-            Pressure::new::<hectopascal>(sum / (count as f64))
-        } else {
-            Pressure::new::<hectopascal>(0.)
+        Pressure::new::<hectopascal>(if count > 0 { sum / (count as f64) } else { 0. })
+    }
+}
+
+impl Average for MassRate {
+    fn average<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = MassRate>,
+    {
+        let mut sum = 0.0;
+        let mut count: usize = 0;
+
+        for v in iter {
+            sum += v.get::<kilogram_per_second>();
+            count += 1;
         }
+
+        MassRate::new::<kilogram_per_second>(if count > 0 { sum / (count as f64) } else { 0. })
+    }
+}
+
+impl Average for ThermodynamicTemperature {
+    fn average<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = ThermodynamicTemperature>,
+    {
+        let mut sum = 0.0;
+        let mut count: usize = 0;
+
+        for v in iter {
+            sum += v.get::<kelvin>();
+            count += 1;
+        }
+
+        ThermodynamicTemperature::new::<kelvin>(if count > 0 { sum / (count as f64) } else { 0. })
+    }
+}
+
+impl Average for Ratio {
+    fn average<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Ratio>,
+    {
+        let mut sum = 0.0;
+        let mut count: usize = 0;
+
+        for v in iter {
+            sum += v.get::<ratio>();
+            count += 1;
+        }
+
+        Ratio::new::<ratio>(if count > 0 { sum / (count as f64) } else { 0. })
     }
 }
 
@@ -731,6 +905,33 @@ impl<'a> Average<&'a Pressure> for Pressure {
     fn average<I>(iter: I) -> Self
     where
         I: Iterator<Item = &'a Pressure>,
+    {
+        iter.copied().average()
+    }
+}
+
+impl<'a> Average<&'a MassRate> for MassRate {
+    fn average<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = &'a MassRate>,
+    {
+        iter.copied().average()
+    }
+}
+
+impl<'a> Average<&'a ThermodynamicTemperature> for ThermodynamicTemperature {
+    fn average<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = &'a ThermodynamicTemperature>,
+    {
+        iter.copied().average()
+    }
+}
+
+impl<'a> Average<&'a Ratio> for Ratio {
+    fn average<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = &'a Ratio>,
     {
         iter.copied().average()
     }
@@ -1520,5 +1721,186 @@ mod height_over_ground {
         test_bed.write_by_name("PLANE ALT ABOVE GROUND", Length::new::<meter>(10.));
 
         test_bed.run_with_delta(Duration::from_secs(0));
+    }
+}
+
+#[cfg(test)]
+mod local_acceleration_at_plane_coordinate {
+    use uom::si::angular_velocity::{degree_per_second, radian_per_second};
+
+    use super::*;
+
+    use crate::simulation::{
+        test::{ElementCtorFn, SimulationTestBed, WriteByName},
+        SimulationElement,
+    };
+
+    #[derive(Default)]
+    struct RotatingObject {
+        local_accel: Vector3<f64>,
+        rotating_point_position: Vector3<f64>,
+    }
+    impl RotatingObject {
+        fn default() -> Self {
+            Self {
+                local_accel: Vector3::default(),
+                rotating_point_position: Vector3::default(),
+            }
+        }
+
+        fn update(&mut self, context: &UpdateContext) {
+            self.local_accel =
+                local_acceleration_at_plane_coordinate(context, self.rotating_point_position);
+        }
+
+        fn set_point_position(&mut self, rotating_point_position: Vector3<f64>) {
+            self.rotating_point_position = rotating_point_position;
+        }
+    }
+    impl SimulationElement for RotatingObject {}
+
+    #[test]
+    fn pilot_cabin_acceleration_pitch_rotations() {
+        let mut test_bed = SimulationTestBed::from(ElementCtorFn(|_| RotatingObject::default()))
+            .with_update_after_power_distribution(|e, context| {
+                e.update(context);
+            });
+
+        // Assuming pilot cabin is 1m forward for simplicity
+        let cabin_position = Vector3::new(0., 0., 1.);
+        test_bed.command_element(|e| e.set_point_position(cabin_position));
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::default()));
+
+        // Pitch up accel
+        test_bed.write_by_name("ROTATION VELOCITY BODY X", 0.);
+        test_bed.write_by_name("ROTATION ACCELERATION BODY X", -1.);
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::new(0., 1., 0.)));
+
+        // Pitch up accel with velocity adds centripetal force
+        test_bed.write_by_name(
+            "ROTATION VELOCITY BODY X",
+            AngularVelocity::new::<radian_per_second>(-1.).get::<degree_per_second>(),
+        );
+        test_bed.write_by_name("ROTATION ACCELERATION BODY X", -1.);
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::new(0., 1., -1.)));
+    }
+
+    #[test]
+    fn pilot_cabin_acceleration_yaw_rotations() {
+        let mut test_bed = SimulationTestBed::from(ElementCtorFn(|_| RotatingObject::default()))
+            .with_update_after_power_distribution(|e, context| {
+                e.update(context);
+            });
+
+        // Assuming pilot cabin is 1m forward for simplicity
+        let cabin_position = Vector3::new(0., 0., 1.);
+        test_bed.command_element(|e| e.set_point_position(cabin_position));
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::default()));
+
+        // Yaw right accel
+        test_bed.write_by_name("ROTATION VELOCITY BODY Y", 0.);
+        test_bed.write_by_name("ROTATION ACCELERATION BODY Y", 1.);
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::new(1., 0., 0.)));
+
+        // Yaw right accel with velocity adds centripetal force
+        test_bed.write_by_name(
+            "ROTATION VELOCITY BODY Y",
+            AngularVelocity::new::<radian_per_second>(1.).get::<degree_per_second>(),
+        );
+        test_bed.write_by_name("ROTATION ACCELERATION BODY Y", 1.);
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::new(1., 0., -1.)));
+
+        // Yaw left accel
+        test_bed.write_by_name("ROTATION VELOCITY BODY Y", 0.);
+        test_bed.write_by_name("ROTATION ACCELERATION BODY Y", -1.);
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::new(-1., 0., 0.)));
+
+        // Yaw left accel with velocity adds centripetal force
+        test_bed.write_by_name(
+            "ROTATION VELOCITY BODY Y",
+            AngularVelocity::new::<radian_per_second>(-1.).get::<degree_per_second>(),
+        );
+        test_bed.write_by_name("ROTATION ACCELERATION BODY Y", -1.);
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::new(-1., 0., -1.)));
+    }
+
+    #[test]
+    fn pilot_cabin_acceleration_roll_rotations() {
+        let mut test_bed = SimulationTestBed::from(ElementCtorFn(|_| RotatingObject::default()))
+            .with_update_after_power_distribution(|e, context| {
+                e.update(context);
+            });
+
+        // Assuming pilot cabin is 1m forward for simplicity
+        let cabin_position = Vector3::new(0., 0., 1.);
+        test_bed.command_element(|e| e.set_point_position(cabin_position));
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::default()));
+
+        // roll right accel -> Aligned on roll axis we expect no effect
+        test_bed.write_by_name("ROTATION VELOCITY BODY Z", 0.);
+        test_bed.write_by_name("ROTATION ACCELERATION BODY Z", -1.);
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::default()));
+
+        // roll right accel with velocity -> Aligned on roll axis we expect no effect
+        test_bed.write_by_name(
+            "ROTATION VELOCITY BODY Z",
+            AngularVelocity::new::<radian_per_second>(-1.).get::<degree_per_second>(),
+        );
+        test_bed.write_by_name("ROTATION ACCELERATION BODY Z", -1.);
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::default()));
+    }
+
+    #[test]
+    fn right_wing_acceleration_roll_rotations() {
+        let mut test_bed = SimulationTestBed::from(ElementCtorFn(|_| RotatingObject::default()))
+            .with_update_after_power_distribution(|e, context| {
+                e.update(context);
+            });
+
+        // Assuming right wing is 1m right for simplicity
+        let right_wing_position = Vector3::new(1., 0., 0.);
+        test_bed.command_element(|e| e.set_point_position(right_wing_position));
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::default()));
+
+        // roll right accel -> expect down accel
+        test_bed.write_by_name("ROTATION VELOCITY BODY Z", 0.);
+        test_bed.write_by_name("ROTATION ACCELERATION BODY Z", -1.);
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::new(0., -1., 0.)));
+
+        // roll right accel with velocity -> Down Force plus centripetal left
+        test_bed.write_by_name(
+            "ROTATION VELOCITY BODY Z",
+            AngularVelocity::new::<radian_per_second>(-1.).get::<degree_per_second>(),
+        );
+        test_bed.write_by_name("ROTATION ACCELERATION BODY Z", -1.);
+
+        test_bed.run_with_delta(Duration::from_secs(0));
+        assert!(test_bed.query_element(|e| e.local_accel == Vector3::new(-1., -1., 0.)));
     }
 }

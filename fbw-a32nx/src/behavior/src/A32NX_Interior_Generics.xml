@@ -18,11 +18,12 @@
             - POTENTIOMETER         <no default>        The potentiometer index to increment
     -->
     <Template Name="FBW_Continuous_Knob_Finite_From_Simvar">
-        <DefaultTemplateParameters>
+        <Parameters Type="Default">
+            <PART_ID>#NODE_ID#</PART_ID>
+            <ANIM_NAME>#NODE_ID#</ANIM_NAME>
             <ANIM_SIMVAR_UNITS>percent</ANIM_SIMVAR_UNITS>
             <ANIM_SIMVAR_MIN>0</ANIM_SIMVAR_MIN>
             <ANIM_SIMVAR_MAX>100</ANIM_SIMVAR_MAX>
-            <ANIM_NAME>#ANIM_NAME#</ANIM_NAME>
             <INCREMENT>1</INCREMENT>
             <WHEEL_INCREMENT>4</WHEEL_INCREMENT>
             <EXTRA_INTERACTION/>
@@ -33,16 +34,21 @@
             <ANIMTIP_1></ANIMTIP_1>
             <ANIM_LAG>60</ANIM_LAG>
             <ANIM_WRAP>True</ANIM_WRAP>
-        </DefaultTemplateParameters>
+        </Parameters>
+        <Parameters Type="Default">
+            <DECREMENT>#INCREMENT#</DECREMENT>
+            <WHEEL_DECREMENT>#WHEEL_INCREMENT#</WHEEL_DECREMENT>
+            <SET_CODE>(&gt;#ANIM_SIMVAR#, #ANIM_SIMVAR_UNITS#)</SET_CODE>
+        </Parameters>
 
-        <OverrideTemplateParameters>
+        <Parameters Type="Override">
             <Condition Valid="POTENTIOMETER">
                 <True>
                     <ANIM_SIMVAR>#ANIM_SIMVAR#:#POTENTIOMETER#</ANIM_SIMVAR>
                     <SET_CODE>#POTENTIOMETER# (&gt;K:2:LIGHT_POTENTIOMETER_SET)</SET_CODE>
                 </True>
             </Condition>
-        </OverrideTemplateParameters>
+        </Parameters>
 
         <UseTemplate Name="ASOBO_GT_Anim_Code">
             <ANIM_CODE>
@@ -55,7 +61,7 @@
                 (#ANIM_SIMVAR#, #ANIM_SIMVAR_UNITS#) #INCREMENT# + #ANIM_SIMVAR_MAX# min #SET_CODE#
             </CLOCKWISE_CODE>
             <ANTICLOCKWISE_CODE>
-                (#ANIM_SIMVAR#, #ANIM_SIMVAR_UNITS#) #INCREMENT# - #ANIM_SIMVAR_MIN# max #SET_CODE#
+                (#ANIM_SIMVAR#, #ANIM_SIMVAR_UNITS#) #DECREMENT# - #ANIM_SIMVAR_MIN# max #SET_CODE#
             </ANTICLOCKWISE_CODE>
 
             <!-- Provide the wheel code if we have WHEEL_INCREMENT -->
@@ -64,11 +70,12 @@
                     <WHEEL_CLOCKWISE_CODE>
                         (#ANIM_SIMVAR#, #ANIM_SIMVAR_UNITS#) #WHEEL_INCREMENT# + #ANIM_SIMVAR_MAX# min #SET_CODE#
                     </WHEEL_CLOCKWISE_CODE>
-
-                    <WHEEL_ANTICLOCKWISE_CODE>
-                        (#ANIM_SIMVAR#, #ANIM_SIMVAR_UNITS#) #WHEEL_INCREMENT# - #ANIM_SIMVAR_MIN# max #SET_CODE#
-                    </WHEEL_ANTICLOCKWISE_CODE>
                 </True>
+            </Condition>
+            <Condition Valid="WHEEL_DECREMENT">
+                <WHEEL_ANTICLOCKWISE_CODE>
+                    (#ANIM_SIMVAR#, #ANIM_SIMVAR_UNITS#) #WHEEL_DECREMENT# - #ANIM_SIMVAR_MIN# max #SET_CODE#
+                </WHEEL_ANTICLOCKWISE_CODE>
             </Condition>
         </UseTemplate>
 
@@ -257,10 +264,10 @@
                 <False>
                     <Condition Check="SEQ1_CODE">
                         <True>
-                            <SEQ1_EMISSIVE_CODE>#SEQ1_CODE# (L:A32NX_OVHD_INTLT_ANN) 0 == or #SEQ1_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ1_EMISSIVE_CODE>
+                            <SEQ1_EMISSIVE_CODE>#SEQ1_CODE# (L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and or #SEQ1_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ1_EMISSIVE_CODE>
                         </True>
                         <False>
-                            <SEQ1_EMISSIVE_CODE>(L:A32NX_OVHD_INTLT_ANN) 0 == #SEQ1_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ1_EMISSIVE_CODE>
+                            <SEQ1_EMISSIVE_CODE>(L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and #SEQ1_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ1_EMISSIVE_CODE>
                         </False>
                     </Condition>
                 </False>
@@ -273,22 +280,22 @@
                 <False>
                     <Condition Check="SEQ2_CODE">
                         <True>
-                            <SEQ2_EMISSIVE_CODE>#SEQ2_CODE# (L:A32NX_OVHD_INTLT_ANN) 0 == or #SEQ2_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ2_EMISSIVE_CODE>
+                            <SEQ2_EMISSIVE_CODE>#SEQ2_CODE# (L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and or #SEQ2_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ2_EMISSIVE_CODE>
                         </True>
                         <False>
                             <Condition Check="TOGGLE_SIMVAR">
                                 <True>
                                     <Condition Check="INVERTED">
                                         <True>
-                                            <SEQ2_EMISSIVE_CODE>(#TOGGLE_SIMVAR#, Bool) ! (L:A32NX_OVHD_INTLT_ANN) 0 == or #SEQ2_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ2_EMISSIVE_CODE>
+                                            <SEQ2_EMISSIVE_CODE>(#TOGGLE_SIMVAR#, Bool) ! (L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and or #SEQ2_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ2_EMISSIVE_CODE>
                                         </True>
                                         <false>
-                                            <SEQ2_EMISSIVE_CODE>(#TOGGLE_SIMVAR#, Bool) (L:A32NX_OVHD_INTLT_ANN) 0 == or #SEQ2_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ2_EMISSIVE_CODE>
+                                            <SEQ2_EMISSIVE_CODE>(#TOGGLE_SIMVAR#, Bool) (L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and or #SEQ2_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ2_EMISSIVE_CODE>
                                         </false>
                                     </Condition>
                                 </True>
                                 <False>
-                                    <SEQ2_EMISSIVE_CODE>(L:A32NX_OVHD_INTLT_ANN) 0 == #SEQ2_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ2_EMISSIVE_CODE>
+                                    <SEQ2_EMISSIVE_CODE>(L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and #SEQ2_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ2_EMISSIVE_CODE>
                                 </False>
                             </Condition>
                         </False>
@@ -453,7 +460,7 @@
             <True>
                 <Component ID="#SEQ1_NODE_ID#" Node="#SEQ1_NODE_ID#">
                     <UseTemplate Name="ASOBO_GT_Emissive_Gauge">
-                        <EMISSIVE_CODE>#SEQ1_CODE# (L:A32NX_OVHD_INTLT_ANN) 0 == or #SEQ1_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</EMISSIVE_CODE>
+                        <EMISSIVE_CODE>#SEQ1_CODE# (L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and or #SEQ1_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</EMISSIVE_CODE>
 
                         <Condition Valid="SEQ1_EMISSIVE_DRIVES_VISIBILITY">
                             <True>
@@ -469,7 +476,7 @@
             <True>
                 <Component ID="#SEQ2_NODE_ID#" Node="#SEQ2_NODE_ID#">
                     <UseTemplate Name="ASOBO_GT_Emissive_Gauge">
-                        <EMISSIVE_CODE>#SEQ2_CODE# (L:A32NX_OVHD_INTLT_ANN) 0 == or #SEQ2_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</EMISSIVE_CODE>
+                        <EMISSIVE_CODE>#SEQ2_CODE# (L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and or #SEQ2_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</EMISSIVE_CODE>
 
                         <Condition Valid="SEQ2_EMISSIVE_DRIVES_VISIBILITY">
                             <True>
@@ -485,7 +492,7 @@
             <True>
                 <Component ID="#SEQ3_NODE_ID#" Node="#SEQ3_NODE_ID#">
                     <UseTemplate Name="ASOBO_GT_Emissive_Gauge">
-                        <EMISSIVE_CODE>#SEQ3_CODE# (L:A32NX_OVHD_INTLT_ANN) 0 == or #SEQ3_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</EMISSIVE_CODE>
+                        <EMISSIVE_CODE>#SEQ3_CODE# (L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and or #SEQ3_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</EMISSIVE_CODE>
 
                         <Condition Valid="SEQ3_EMISSIVE_DRIVES_VISIBILITY">
                             <True>
@@ -501,7 +508,7 @@
             <True>
                 <Component ID="#SEQ4_NODE_ID#" Node="#SEQ4_NODE_ID#">
                     <UseTemplate Name="ASOBO_GT_Emissive_Gauge">
-                        <EMISSIVE_CODE>#SEQ4_CODE# (L:A32NX_OVHD_INTLT_ANN) 0 == or #SEQ4_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</EMISSIVE_CODE>
+                        <EMISSIVE_CODE>#SEQ4_CODE# (L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and or #SEQ4_POWERED# and #SEQ_POWERED# and #EMISSIVE_DIM# *</EMISSIVE_CODE>
 
                         <Condition Valid="SEQ4_EMISSIVE_DRIVES_VISIBILITY">
                             <True>
@@ -588,25 +595,25 @@
             - INCREMENT             Default: 1          The increment for each click / hold update
     -->
     <Template Name="FBW_Continuous_Knob_Limited_From_Simvar">
-        <DefaultTemplateParameters>
+        <Parameters Type="Default">
             <NODE_ID>#NODE_ID#</NODE_ID>
-            <PART_ID>#NODE_ID#</PART_ID>
-            <ANIM_NAME>#NODE_ID#</ANIM_NAME>
+            <ANIM_SIMVAR_MIN>0</ANIM_SIMVAR_MIN>
             <ANIM_SIMVAR_MAX>100</ANIM_SIMVAR_MAX>
             <CONVERSION_FORMULA></CONVERSION_FORMULA>
-        </DefaultTemplateParameters>
+        </Parameters>
+        <Parameters Type="Default">
+            <PART_ID>#NODE_ID#</PART_ID>
+            <ANIM_NAME>#NODE_ID#</ANIM_NAME>
+        </Parameters>
 
         <Update Frequency="40">
-            (L:XMLVAR_#NODE_ID#, percent) #ANIM_SIMVAR_MAX# min (&gt;L:XMLVAR_#NODE_ID#, percent)
+            (L:XMLVAR_#NODE_ID#, percent) #ANIM_SIMVAR_MAX# min #ANIM_SIMVAR_MIN# max (&gt;L:XMLVAR_#NODE_ID#, percent)
             (L:XMLVAR_#NODE_ID#, percent) #CONVERSION_FORMULA# (&gt;#LOCAL_SIMVAR#, #LOCAL_SIMVAR_UNITS#)
         </Update>
 
         <UseTemplate Name="FBW_Continuous_Knob_Finite_From_Simvar">
-            <ANIM_SIMVAR_MIN>0</ANIM_SIMVAR_MIN>
-            <ANIM_SIMVAR_MAX>100</ANIM_SIMVAR_MAX>
             <ANIM_SIMVAR>L:XMLVAR_#NODE_ID#</ANIM_SIMVAR>
             <ANIM_SIMVAR_UNITS>percent</ANIM_SIMVAR_UNITS>
-            <ANIM_CODE>#ANIM_CODE#</ANIM_CODE>
         </UseTemplate>
     </Template>
 
@@ -626,15 +633,17 @@
             - ANNOTATE_TOOLTIP      Default: True               Turn on tooltip potentiometer % value (#ANIMTIP# (73%))
     -->
     <Template Name="FBW_Stepless_Potentiometer">
-        <DefaultTemplateParameters>
+        <Parameters Type="Default">
             <NODE_ID>#NODE_ID#</NODE_ID>
-            <PART_ID>#NODE_ID#</PART_ID>
-            <ANIM_NAME>#NODE_ID#</ANIM_NAME>
             <ANIM_SIMVAR_UNITS>Percent</ANIM_SIMVAR_UNITS>
             <ANIM_SIMVAR>A:LIGHT POTENTIOMETER</ANIM_SIMVAR>
             <WHEEL_INCREMENT>5</WHEEL_INCREMENT>
             <ANNOTATE_TOOLTIP>True</ANNOTATE_TOOLTIP>
-        </DefaultTemplateParameters>
+        </Parameters>
+        <Parameters Type="Default">
+            <PART_ID>#NODE_ID#</PART_ID>
+            <ANIM_NAME>#NODE_ID#</ANIM_NAME>
+        </Parameters>
 
         <Component ID="#NODE_ID#" Node="#NODE_ID#">
             <UseTemplate Name="FBW_Continuous_Knob_Finite_From_Simvar">

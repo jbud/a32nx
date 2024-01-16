@@ -1,8 +1,12 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 /* eslint-disable max-len */
 import React, { useState } from 'react';
-import { usePersistentNumberProperty, usePersistentProperty } from '@instruments/common/persistence';
+import { usePersistentNumberProperty, usePersistentProperty, useSimVar } from '@flybywiresim/fbw-sdk';
 
-import { useSimVar } from '@instruments/common/simVars';
+import { toast } from 'react-toastify';
 import { t } from '../../translation';
 import { Toggle } from '../../UtilComponents/Form/Toggle';
 import { ButtonType, SettingItem, SettingsPage } from '../Settings';
@@ -18,6 +22,8 @@ export const SimOptionsPage = () => {
     const [defaultBaro, setDefaultBaro] = usePersistentProperty('CONFIG_INIT_BARO_UNIT', 'AUTO');
     const [dynamicRegistration, setDynamicRegistration] = usePersistentProperty('DYNAMIC_REGISTRATION_DECAL', '0');
     const [fpSync, setFpSync] = usePersistentProperty('FP_SYNC', 'LOAD');
+    const [simbridgeRemote, setSimbridgeRemoteStatus] = usePersistentProperty('CONFIG_SIMBRIDGE_REMOTE', 'local');
+    const [simbridgeIp, setSimbridgeIp] = usePersistentProperty('CONFIG_SIMBRIDGE_IP', 'localhost');
     const [simbridgePort, setSimbridgePort] = usePersistentProperty('CONFIG_SIMBRIDGE_PORT', '8380');
     const [simbridgeEnabled, setSimbridgeEnabled] = usePersistentProperty('CONFIG_SIMBRIDGE_ENABLED', 'AUTO ON');
     const [radioReceiverUsage, setRadioReceiverUsage] = usePersistentProperty('RADIO_RECEIVER_USAGE_ENABLED', '0');
@@ -46,6 +52,7 @@ export const SimOptionsPage = () => {
                         <SelectGroup>
                             {defaultBaroButtons.map((button) => (
                                 <SelectItem
+                                    key={button.setting}
                                     onSelect={() => setDefaultBaro(button.setting)}
                                     selected={defaultBaro === button.setting}
                                 >
@@ -59,6 +66,7 @@ export const SimOptionsPage = () => {
                         <SelectGroup>
                             {fpSyncButtons.map((button) => (
                                 <SelectItem
+                                    key={button.setting}
                                     onSelect={() => setFpSync(button.setting)}
                                     selected={fpSync === button.setting}
                                 >
@@ -71,7 +79,7 @@ export const SimOptionsPage = () => {
                     <SettingItem name={t('Settings.SimOptions.EnableSimBridge')}>
                         <SelectGroup>
                             <SelectItem
-                                className="text-center color-red"
+                                className="color-red text-center"
                                 onSelect={() => setSimbridgeEnabled('AUTO ON')}
                                 selected={simbridgeEnabled === 'AUTO ON' || simbridgeEnabled === 'AUTO OFF'}
 
@@ -90,9 +98,55 @@ export const SimOptionsPage = () => {
                         </div>
                     </SettingItem>
 
+                    <SettingItem name="SimBridge Host Machine">
+                        <SelectGroup>
+                            <SelectItem
+                                className="color-red text-center"
+                                onSelect={
+                                    () => {
+                                        setSimbridgeRemoteStatus('local');
+                                    }
+                                }
+                                selected={simbridgeRemote === 'local'}
+                            >
+                                This PC
+                            </SelectItem>
+                            <SelectItem
+                                onSelect={
+                                    () => {
+                                        setSimbridgeRemoteStatus('remote');
+                                    }
+                                }
+                                selected={simbridgeRemote === 'remote'}
+                            >
+                                Remote PC
+                            </SelectItem>
+                        </SelectGroup>
+                        {simbridgeRemote === 'remote'
+                        && (
+                            <div className="pt-2 text-center">
+                                <SimpleInput
+                                    className="w-30 text-center"
+                                    value={simbridgeIp}
+                                    onChange={(event) => {
+                                        // Error on empty string
+                                        if (event === '') {
+                                            toast.error('SimBridge Remote IP Address cannot be empty!');
+                                            // Reset to previous value
+                                            setSimbridgeIp(simbridgeIp);
+                                            return;
+                                        }
+                                        // Remove whitespace
+                                        setSimbridgeIp(event.replace(/\s/g, ''));
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </SettingItem>
+
                     <SettingItem name={t('Settings.SimOptions.SimBridgePort')}>
                         <SimpleInput
-                            className="text-center w-30"
+                            className="w-30 text-center"
                             value={simbridgePort}
                             onChange={(event) => {
                                 setSimbridgePort(event.replace(/[^0-9]+/g, ''));
@@ -135,8 +189,8 @@ export const SimOptionsPage = () => {
                     <SettingItem name={t('Settings.SimOptions.ThrottleDetents')}>
                         <button
                             type="button"
-                            className="py-2.5 px-5 text-theme-body hover:text-theme-highlight bg-theme-highlight
-                                       hover:bg-theme-body rounded-md border-2 border-theme-highlight transition duration-100"
+                            className="text-theme-body hover:text-theme-highlight bg-theme-highlight hover:bg-theme-body border-theme-highlight
+                                       rounded-md border-2 px-5 py-2.5 transition duration-100"
                             onClick={() => setShowThrottleSettings(true)}
                         >
                             {t('Settings.SimOptions.Calibrate')}

@@ -1,12 +1,16 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 function translateAtsuMessageType(type) {
     switch (type) {
-        case Atsu.AtsuMessageType.Freetext:
+        case AtsuCommon.AtsuMessageType.Freetext:
             return "FREETEXT";
-        case Atsu.AtsuMessageType.METAR:
+        case AtsuCommon.AtsuMessageType.METAR:
             return "METAR";
-        case Atsu.AtsuMessageType.TAF:
+        case AtsuCommon.AtsuMessageType.TAF:
             return "TAF";
-        case Atsu.AtsuMessageType.ATIS:
+        case AtsuCommon.AtsuMessageType.ATIS:
             return "ATIS";
         default:
             return "UNKNOWN";
@@ -38,18 +42,19 @@ const lbsToKg = (value) => {
  * @param {() => void} updateView
  */
 const getSimBriefOfp = (mcdu, updateView, callback = () => {}) => {
-    const simBriefUserId = NXDataStore.get("CONFIG_SIMBRIEF_USERID", "");
+    const navigraphUsername = NXDataStore.get("NAVIGRAPH_USERNAME", "");
+    const overrideSimBriefUserID = NXDataStore.get('CONFIG_OVERRIDE_SIMBRIEF_USERID', '');
 
-    if (!simBriefUserId) {
-        mcdu.setScratchpadMessage(NXFictionalMessages.noSimBriefUser);
-        throw new Error("No SimBrief pilot ID provided");
+    if (!navigraphUsername && !overrideSimBriefUserID) {
+        mcdu.setScratchpadMessage(NXFictionalMessages.noNavigraphUser);
+        throw new Error("No Navigraph username provided");
     }
 
     mcdu.simbrief["sendStatus"] = "REQUESTING";
 
     updateView();
 
-    return SimBriefApi.getSimBriefOfp(simBriefUserId)
+    return SimBriefApi.getSimBriefOfp(navigraphUsername, overrideSimBriefUserID)
         .then(data => {
             mcdu.simbrief["units"] = data.params.units;
             mcdu.simbrief["route"] = data.general.route;
@@ -72,11 +77,15 @@ const getSimBriefOfp = (mcdu, updateView, callback = () => {}) => {
             mcdu.simbrief["costIndex"] = data.general.costindex;
             mcdu.simbrief["navlog"] = data.navlog.fix;
             mcdu.simbrief["callsign"] = data.atc.callsign;
-            mcdu.simbrief["alternateIcao"] = data.alternate.icao_code;
-            mcdu.simbrief["alternateTransAlt"] = parseInt(data.alternate.trans_alt, 10);
-            mcdu.simbrief["alternateTransLevel"] = parseInt(data.alternate.trans_level, 10);
-            mcdu.simbrief["alternateAvgWindDir"] = parseInt(data.alternate.avg_wind_dir, 10);
-            mcdu.simbrief["alternateAvgWindSpd"] = parseInt(data.alternate.avg_wind_spd, 10);
+            let alternate = data.alternate;
+            if (Array.isArray(data.alternate)) {
+                alternate = data.alternate[0];
+            }
+            mcdu.simbrief["alternateIcao"] = alternate.icao_code;
+            mcdu.simbrief["alternateTransAlt"] = parseInt(alternate.trans_alt, 10);
+            mcdu.simbrief["alternateTransLevel"] = parseInt(alternate.trans_level, 10);
+            mcdu.simbrief["alternateAvgWindDir"] = parseInt(alternate.avg_wind_dir, 10);
+            mcdu.simbrief["alternateAvgWindSpd"] = parseInt(alternate.avg_wind_spd, 10);
             mcdu.simbrief["avgTropopause"] = data.general.avg_tropopause;
             mcdu.simbrief["ete"] = data.times.est_time_enroute;
             mcdu.simbrief["blockTime"] = data.times.est_block;
@@ -120,16 +129,13 @@ const insertUplink = (mcdu) => {
         callsign
     } = mcdu.simbrief;
 
-    mcdu.setScratchpadMessage(NXSystemMessages.uplinkInsertInProg);
+    mcdu.addMessageToQueue(NXSystemMessages.uplinkInsertInProg);
 
     /**
      * AOC ACT F-PLN UPLINK
      */
     mcdu.setFromTo(originIcao, destinationIcao).then(async (result) => {
         if (result) {
-            CDUPerformancePage.UpdateThrRedAccFromOrigin(mcdu);
-            CDUPerformancePage.UpdateEngOutAccFromOrigin(mcdu);
-
             if (originTransAlt > 0) {
                 mcdu.flightPlanManager.setOriginTransitionAltitude(originTransAlt, true);
             }
@@ -141,7 +147,7 @@ const insertUplink = (mcdu) => {
 
             setTimeout(async () => {
                 await uplinkRoute(mcdu);
-                mcdu.setScratchpadMessage(NXSystemMessages.aocActFplnUplink);
+                mcdu.addMessageToQueue(NXSystemMessages.aocActFplnUplink);
             }, mcdu.getDelayRouteChange());
 
             if (mcdu.page.Current === mcdu.page.InitPageA) {
@@ -241,9 +247,6 @@ const insertCoRoute = async (mcdu) => {
 
     mcdu.setFromTo(originIcao, destinationIcao).then(async (result) => {
         if (result) {
-            CDUPerformancePage.UpdateThrRedAccFromOrigin(mcdu);
-            CDUPerformancePage.UpdateEngOutAccFromOrigin(mcdu);
-
             if (alternateIcao) {
                 await mcdu.tryUpdateAltDestination(alternateIcao);
             }

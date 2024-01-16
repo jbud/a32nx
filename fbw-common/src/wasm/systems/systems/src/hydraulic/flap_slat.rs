@@ -11,7 +11,7 @@ use uom::si::{
     angular_velocity::{radian_per_second, revolution_per_minute},
     f64::*,
     pressure::psi,
-    ratio::ratio,
+    ratio::{percent, ratio},
     torque::pound_force_inch,
     volume::{cubic_inch, gallon},
     volume_rate::{gallon_per_minute, gallon_per_second},
@@ -136,6 +136,9 @@ pub struct FlapSlatAssembly {
     final_surface_angle_carac: [f64; 12],
 
     circuit_target_pressure: Pressure,
+
+    left_position: Ratio,
+    right_position: Ratio,
 }
 impl FlapSlatAssembly {
     const LOW_PASS_FILTER_SURFACE_POSITION_TRANSIENT_TIME_CONSTANT: Duration =
@@ -186,6 +189,8 @@ impl FlapSlatAssembly {
             synchro_gear_breakpoints,
             final_surface_angle_carac,
             circuit_target_pressure,
+            left_position: Ratio::default(),
+            right_position: Ratio::default(),
         }
     }
 
@@ -209,16 +214,22 @@ impl FlapSlatAssembly {
         self.update_current_max_speed(
             sfcc1_surface_position_request.is_some(),
             sfcc2_surface_position_request.is_some(),
-            left_pressure.pressure(),
-            right_pressure.pressure(),
+            left_pressure.pressure_downstream_priority_valve(),
+            right_pressure.pressure_downstream_priority_valve(),
             context,
         );
 
         self.update_speed_and_position(context);
 
-        self.update_motors_speed(left_pressure.pressure(), right_pressure.pressure(), context);
+        self.update_motors_speed(
+            left_pressure.pressure_downstream_priority_valve(),
+            right_pressure.pressure_downstream_priority_valve(),
+            context,
+        );
 
         self.update_motors_flow(context);
+
+        self.update_position_ratios();
     }
 
     fn update_speed_and_position(&mut self, context: &UpdateContext) {
@@ -386,6 +397,23 @@ impl FlapSlatAssembly {
         self.left_motor.update_flow(context);
     }
 
+    fn update_position_ratios(&mut self) {
+        self.left_position = Ratio::new::<ratio>(
+            interpolation(
+                &self.synchro_gear_breakpoints,
+                &self.final_surface_angle_carac,
+                self.position_feedback().get::<degree>(),
+            ) / interpolation(
+                &self.synchro_gear_breakpoints,
+                &self.final_surface_angle_carac,
+                self.max_synchro_gear_position.get::<degree>(),
+            ),
+        );
+
+        // TODO update when left and right are simulated separatly
+        self.right_position = self.left_position;
+    }
+
     fn is_approaching_requested_position(&self, synchro_gear_angle_request: Angle) -> bool {
         self.speed.get::<radian_per_second>() > 0.
             && synchro_gear_angle_request - self.position_feedback()
@@ -450,32 +478,24 @@ impl FlapSlatAssembly {
     fn is_surface_moving(&self) -> bool {
         self.speed.abs().get::<radian_per_second>() > Self::MIN_ANGULAR_SPEED_TO_REPORT_MOVING
     }
+
+    pub fn left_position(&self) -> f64 {
+        self.left_position.get::<ratio>()
+    }
+
+    pub fn right_position(&self) -> f64 {
+        self.right_position.get::<ratio>()
+    }
 }
 impl SimulationElement for FlapSlatAssembly {
     fn write(&self, writer: &mut SimulatorWriter) {
         writer.write(
             &self.position_left_percent_id,
-            interpolation(
-                &self.synchro_gear_breakpoints,
-                &self.final_surface_angle_carac,
-                self.position_feedback().get::<degree>(),
-            ) / interpolation(
-                &self.synchro_gear_breakpoints,
-                &self.final_surface_angle_carac,
-                self.max_synchro_gear_position.get::<degree>(),
-            ) * 100.,
+            self.left_position.get::<percent>(),
         );
         writer.write(
             &self.position_right_percent_id,
-            interpolation(
-                &self.synchro_gear_breakpoints,
-                &self.final_surface_angle_carac,
-                self.position_feedback().get::<degree>(),
-            ) / interpolation(
-                &self.synchro_gear_breakpoints,
-                &self.final_surface_angle_carac,
-                self.max_synchro_gear_position.get::<degree>(),
-            ) * 100.,
+            self.right_position.get::<percent>(),
         );
 
         let flaps_surface_angle = self.flap_surface_angle();
@@ -522,6 +542,10 @@ mod tests {
         }
 
         fn pressure_downstream_leak_valve(&self) -> Pressure {
+            self.pressure
+        }
+
+        fn pressure_downstream_priority_valve(&self) -> Pressure {
             self.pressure
         }
 

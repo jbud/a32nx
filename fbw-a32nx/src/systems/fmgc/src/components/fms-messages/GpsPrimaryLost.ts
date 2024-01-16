@@ -1,5 +1,9 @@
-import { FMMessage, FMMessageTypes } from '@shared/FmMessages';
-import { ConfirmationNode, Trigger } from '@shared/logic';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
+import { FMMessage, FMMessageTypes, ConfirmationNode, Trigger } from '@flybywiresim/fbw-sdk';
+
 import { FMMessageSelector, FMMessageUpdate } from './FmsMessages';
 
 /**

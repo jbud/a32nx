@@ -14,16 +14,15 @@ import {
     Wifi,
     WifiOff,
 } from 'react-bootstrap-icons';
-import { usePersistentNumberProperty, usePersistentProperty } from '@instruments/common/persistence';
-import { useSimVar } from '@instruments/common/simVars';
+import { usePersistentNumberProperty, usePersistentProperty, useSimVar } from '@flybywiresim/fbw-sdk';
 import Slider from 'rc-slider';
 import { useHistory } from 'react-router-dom';
 import { useInterval } from '@flybywiresim/react-components';
-import { SimBridgeClientState } from '@simbridge/components/ClientState';
 import { t } from '../translation';
 import { TooltipWrapper } from '../UtilComponents/TooltipWrapper';
 import { PowerStates, usePower } from '../Efb';
 import { ClientState } from '../../../../simbridge-client/src';
+import { SimBridgeClientState } from '../../../../simbridge-client/src/components/ClientState';
 
 interface QuickSettingsButtonProps {
     onClick: () => void;
@@ -113,7 +112,7 @@ export const QuickControlsPane = ({ setShowQuickControlsPane }: {setShowQuickCon
 
     const loadedToOff = () => {
         setShowQuickControlsPane(false);
-        power.setPowerState(PowerStates.LOADING);
+        power.setPowerState(PowerStates.SHUTDOWN);
         setTimeout(() => {
             power.setPowerState(PowerStates.SHUTOFF);
         }, 1000);
@@ -273,8 +272,8 @@ export const QuickControlsPane = ({ setShowQuickControlsPane }: {setShowQuickCon
                         <button
                             type="button"
                             onClick={handleAutoBrightness}
-                            className={`flex justify-center items-center ml-4 text-theme-text 
-                                                    bg-theme-body hover:border-4 hover:border-theme-highlight rounded-md 
+                            className={`flex justify-center items-center ml-4 text-theme-text
+                                                    bg-theme-body hover:border-4 hover:border-theme-highlight rounded-md
                                                     transition duration-100 ${usingAutobrightness === 1 ? 'bg-utility-green text-theme-body' : ''}`}
                             style={{ width: '80px', height: '50px' }}
                         >

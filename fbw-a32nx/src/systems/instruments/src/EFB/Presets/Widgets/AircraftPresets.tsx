@@ -3,7 +3,7 @@
 
 /* eslint-disable max-len */
 import React from 'react';
-import { useSimVar } from '@instruments/common/simVars';
+import { useSimVar } from '@flybywiresim/fbw-sdk';
 import { t } from '../../translation';
 import { ScrollableContainer } from '../../UtilComponents/ScrollableContainer';
 import { PromptModal, useModals } from '../../UtilComponents/Modals/Modals';
@@ -91,6 +91,7 @@ export const AircraftPresets = () => {
             <ScrollableContainer innerClassName="space-y-4" height={52}>
                 {AircraftPresetsList.map(({ index, name }) => (
                     <div
+                        key={index}
                         className={`flex justify-center items-center h-24 rounded-md border-2 transition duration-100 text-theme-text hover:text-theme-body bg-theme-accent hover:bg-theme-highlight border-theme-accent ${(!simOnGround || (loadPresetVar && loadPresetVar !== index)) && 'opacity-50 pointer-events-none'}`}
                         onClick={() => handleLoadPreset(index)}
                     >

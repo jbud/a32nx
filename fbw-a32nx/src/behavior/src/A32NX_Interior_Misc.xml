@@ -186,8 +186,8 @@
         </DefaultTemplateParameters>
         <UseTemplate Name="ASOBO_GT_Push_Button_Airliner">
             <DUMMY_BUTTON>True</DUMMY_BUTTON>
-            <SEQ1_EMISSIVE_CODE> (L:#SIMVAR_UNLOCK#, Bool)  (L:A32NX_OVHD_INTLT_ANN) 0 == or #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ1_EMISSIVE_CODE>
-            <SEQ2_EMISSIVE_CODE> (L:#SIMVAR_DOWNLOCK#, Bool)  (L:A32NX_OVHD_INTLT_ANN) 0 == or #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ2_EMISSIVE_CODE>
+            <SEQ1_EMISSIVE_CODE> (L:#SIMVAR_UNLOCK#, Bool)  (L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and or #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ1_EMISSIVE_CODE>
+            <SEQ2_EMISSIVE_CODE> (L:#SIMVAR_DOWNLOCK#, Bool)  (L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and or #SEQ_POWERED# and #EMISSIVE_DIM# *</SEQ2_EMISSIVE_CODE>
         </UseTemplate>
     </Template>
 
@@ -201,6 +201,18 @@
             <DOWN_CODE>(A:FUELSYSTEM PUMP SWITCH:#ID#, Enum) 1 ==</DOWN_CODE>
 
             <TOOLTIPID>%((A:FUELSYSTEM PUMP SWITCH:#ID#, Enum) 0 ==)%{if}TT:#OFF_TOOLTIP#%{else}TT:#ON_TOOLTIP#%{end}</TOOLTIPID>
+        </UseTemplate>
+    </Template>
+
+    <Template Name="FBW_Airbus_Fuel_Jet_Pump">
+        <UseTemplate Name="FBW_Push_Toggle">
+            <LEFT_SINGLE_CODE>#ID# (&gt;K:FUELSYSTEM_VALVE_TOGGLE)</LEFT_SINGLE_CODE>
+
+            <SEQ2_CODE>(A:FUELSYSTEM VALVE SWITCH:#ID#, Enum) 0 ==</SEQ2_CODE>
+
+            <DOWN_CODE>(A:FUELSYSTEM VALVE SWITCH:#ID#, Enum) 1 ==</DOWN_CODE>
+
+            <TOOLTIPID>%((A:FUELSYSTEM VALVE SWITCH:#ID#, Enum) 0 ==)%{if}TT:#OFF_TOOLTIP#%{else}TT:#ON_TOOLTIP#%{end}</TOOLTIPID>
         </UseTemplate>
     </Template>
 
@@ -269,11 +281,10 @@
         </DefaultTemplateParameters>
 
         <UseTemplate Name="FBW_Push_Toggle">
-            <LEFT_SINGLE_CODE>#ID# (&gt;K:ENGINE_BLEED_AIR_SOURCE_TOGGLE)</LEFT_SINGLE_CODE>
+            <TOOLTIPID>%((L:A32NX_OVHD_PNEU_ENG_#ID#_BLEED_PB_IS_AUTO, Bool) !)%{if}TT:COCKPIT.TOOLTIPS.PRESSURIZATION_PANEL_ENGINE_#ID#_BLEED_TURN_ON%{else}TT:COCKPIT.TOOLTIPS.PRESSURIZATION_PANEL_ENGINE_#ID#_BLEED_TURN_OFF%{end}</TOOLTIPID>
             <SEQ1_CODE>(L:A32NX_OVHD_PNEU_ENG_#ID#_BLEED_PB_HAS_FAULT, Bool)</SEQ1_CODE>
-            <SEQ2_CODE>(A:BLEED AIR ENGINE:#ID#, Bool) !</SEQ2_CODE>
-            <DOWN_CODE>(A:BLEED AIR ENGINE:#ID#, Bool)</DOWN_CODE>
-            <TOOLTIPID>%((A:BLEED AIR ENGINE:#ID#, Bool) !)%{if}TT:COCKPIT.TOOLTIPS.PRESSURIZATION_PANEL_ENGINE_#ID#_BLEED_TURN_ON%{else}TT:COCKPIT.TOOLTIPS.PRESSURIZATION_PANEL_ENGINE_#ID#_BLEED_TURN_OFF%{end}</TOOLTIPID>
+            <SEQ2_CODE>(L:A32NX_OVHD_PNEU_ENG_#ID#_BLEED_PB_IS_AUTO, Bool) !</SEQ2_CODE>
+            <TOGGLE_SIMVAR>L:A32NX_OVHD_PNEU_ENG_#ID#_BLEED_PB_IS_AUTO</TOGGLE_SIMVAR>
         </UseTemplate>
     </Template>
 
@@ -308,13 +319,6 @@
             <ANIMTIP_1>TT:COCKPIT.TOOLTIPS.ENGINE#ID#_MASTER_TURN_OFF</ANIMTIP_1>
         </DefaultTemplateParameters>
         <Component ID="#NODE_ID#" Node="#NODE_ID#">
-            <Update Frequency="5">
-                (* This Update Ensures that the state of some simvars that are linked to the same button is consistent. *)
-                (A:FUELSYSTEM VALVE SWITCH:#VALVE_ID#, Bool) sp1
-                (A:GENERAL ENG STARTER:#ID#, Bool) l1 != if{
-                    (&gt;K:TOGGLE_STARTER#ID#)
-                }
-            </Update>
             <UseTemplate Name="ASOBO_GT_Switch_Code">
                 <ANIM_CODE>
                     (A:FUELSYSTEM VALVE SWITCH:#VALVE_ID#, Bool) 100 *
@@ -322,14 +326,8 @@
                 <LEFT_SINGLE_CODE>
                     (A:FUELSYSTEM VALVE SWITCH:#VALVE_ID#, Bool) if{
                         #VALVE_ID# (&gt;K:FUELSYSTEM_VALVE_CLOSE)
-                        (A:GENERAL ENG STARTER:#ID#, Bool) if{
-                            (&gt;K:TOGGLE_STARTER#ID#)
-                        }
                     } els{
                         #VALVE_ID# (&gt;K:FUELSYSTEM_VALVE_OPEN)
-                        (A:GENERAL ENG STARTER:#ID#, Bool) ! if{
-                            (&gt;K:TOGGLE_STARTER#ID#)
-                        }
                     }
                 </LEFT_SINGLE_CODE>
             </UseTemplate>
@@ -485,7 +483,7 @@
                     #GROUP_INDEX# -1 &gt; if{
                         (L:A32NX_ECAM_SD_CURRENT_PAGE_INDEX) #GROUP_INDEX# ==
                     }
-                    (L:A32NX_OVHD_INTLT_ANN) 0 == or
+                    (L:A32NX_OVHD_INTLT_ANN) 0 == (L:A32NX_ELEC_DC_2_BUS_IS_POWERED, Bool) and or
                 </EMISSIVE_CODE>
             </UseTemplate>
         </Component>
@@ -700,5 +698,67 @@ if groundCtl and !groundControlPermissives {
     groundCtl = false;
 }
         </Update>
+    </Template>
+
+    <Template Name="FBW_JET_PUMP">
+        <Parameters Type="Default">
+            <PUMP_INDEX>1</PUMP_INDEX>
+            <JUNCTION_INDEX>1</JUNCTION_INDEX>
+            <AUTO_VALVE_INDEX>1</AUTO_VALVE_INDEX>
+            <DISABLE_VALVE_INDEX>1</DISABLE_VALVE_INDEX>
+        </Parameters>
+        <Component ID="JET_PUMP_#PUMP_INDEX#">
+            <UseTemplate Name="Asobo_GT_Update">
+                <FREQUENCY>1</FREQUENCY>
+                <UPDATE_CODE type="rnp">
+                    let manualSelected = (A:FUELSYSTEM JUNCTION SETTING:#JUNCTION_INDEX#, number) > 1.5;
+                    let autoSelected = (A:FUELSYSTEM VALVE OPEN:#AUTO_VALVE_INDEX#, percent over 100) > 0.0 and !manualSelected;
+                    let valveOpen = (A:FUELSYSTEM VALVE OPEN:#DISABLE_VALVE_INDEX#, percent over 100) > 0.0 and (autoSelected or manualSelected);
+                    let jetPump = (A:FUELSYSTEM PUMP ACTIVE:#PUMP_INDEX#, bool);
+
+                    if valveOpen != jetPump {
+                        (K:FUELSYSTEM_PUMP_TOGGLE) = #PUMP_INDEX, number#;
+                    }
+                </UPDATE_CODE>
+            </UseTemplate>
+        </Component>
+    </Template>
+
+    <Template Name="FBW_REAR_SEAT">
+        <DefaultTemplateParameters>
+            <NODE_ID>#NODE_ID#</NODE_ID>
+            <ANIM_NAME>#NODE_ID#</ANIM_NAME>
+            <CURSOR>Grab</CURSOR>
+
+            <ANIM_LENGTH>100</ANIM_LENGTH>
+            <ANIM_DURATION>100</ANIM_DURATION>
+            <LEFT_SINGLE_CODE/>
+            <LEFT_LEAVE_CODE/>
+            <ANIM_LAG>50</ANIM_LAG>
+
+            <TOGGLE_VAR>L:A32NX_#NODE_ID#</TOGGLE_VAR>
+        </DefaultTemplateParameters>
+        <Component ID="#NODE_ID#_MOUSE" Node="#NODE_ID#_MOUSE">
+            <UseTemplate Name = "ASOBO_GT_Anim">
+                <NODE_ID>#NODE_ID#</NODE_ID>
+                <ANIM_NAME>#NODE_ID#</ANIM_NAME>
+                <ANIM_CODE>(#TOGGLE_VAR#) 100 *</ANIM_CODE>
+            </UseTemplate>
+
+            <UseTemplate Name = "ASOBO_GT_Interaction_LeftSingle_Leave_Code">
+                <NODE_ID>#NODE_ID#_MOUSE</NODE_ID>
+                <ANIM_NAME>#NODE_ID#_MOUSE</ANIM_NAME>
+                <LEFT_SINGLE_CODE>
+                    (#TOGGLE_VAR#) ! (&gt;#TOGGLE_VAR#) #LEFT_SINGLE_CODE#
+                </LEFT_SINGLE_CODE>
+                <LEFT_LEAVE_CODE />
+                <HIGHLIGHT_NODE_ID>#NODE_ID#</HIGHLIGHT_NODE_ID>
+            </UseTemplate>
+
+            <UseTemplate Name="ASOBO_GT_AnimTriggers_SoundEvent">
+                <ANIM_NAME>#NODE_ID#</ANIM_NAME>
+                <WWISE_EVENT>rear_seat_slide</WWISE_EVENT>
+            </UseTemplate>
+        </Component>
     </Template>
 </ModelBehaviors>

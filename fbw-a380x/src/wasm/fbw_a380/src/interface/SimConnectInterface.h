@@ -11,8 +11,8 @@
 #include "SimConnectData.h"
 
 #include "../model/A380PrimComputer_types.h"
+#include "../model/A380SecComputer_types.h"
 #include "../model/FacComputer_types.h"
-// #include "../model/SecComputer_types.h"
 
 class SimConnectInterface {
  public:
@@ -38,6 +38,10 @@ class SimConnectInterface {
     ELEVATOR_SET,
     ELEV_DOWN,
     ELEV_UP,
+    ELEV_TRIM_DN,
+    ELEV_TRIM_UP,
+    ELEVATOR_TRIM_SET,
+    AXIS_ELEV_TRIM_SET,
     AP_MASTER,
     AUTOPILOT_OFF,
     AUTOPILOT_ON,
@@ -207,8 +211,6 @@ class SimConnectInterface {
 
   void setSampleTime(double sampleTime);
 
-  bool requestReadData();
-
   bool requestData();
 
   bool readData();
@@ -233,6 +235,8 @@ class SimConnectInterface {
 
   bool setClientDataLocalVariablesAutothrust(ClientDataLocalVariablesAutothrust output);
 
+  void resetSimInputPitchTrim();
+
   void resetSimInputRudderTrim();
 
   void resetSimInputAutopilot();
@@ -244,6 +248,8 @@ class SimConnectInterface {
   SimInput getSimInput();
 
   SimInputAutopilot getSimInputAutopilot();
+
+  SimInputPitchTrim getSimInputPitchTrim();
 
   SimInputRudderTrim getSimInputRudderTrim();
 
@@ -270,13 +276,13 @@ class SimConnectInterface {
   base_prim_analog_outputs getClientDataPrimAnalogsOutput();
   base_prim_out_bus getClientDataPrimBusOutput();
 
-  // bool setClientDataSecDiscretes(base_sec_discrete_inputs output);
-  // bool setClientDataSecAnalog(base_sec_analog_inputs output);
-  // bool setClientDataSecBus(base_sec_out_bus output, int secIndex);
-  //
-  // base_sec_discrete_outputs getClientDataSecDiscretesOutput();
-  // base_sec_analog_outputs getClientDataSecAnalogsOutput();
-  // base_sec_out_bus getClientDataSecBusOutput();
+  bool setClientDataSecDiscretes(base_sec_discrete_inputs output);
+  bool setClientDataSecAnalog(base_sec_analog_inputs output);
+  bool setClientDataSecBus(base_sec_out_bus output, int secIndex);
+
+  base_sec_discrete_outputs getClientDataSecDiscretesOutput();
+  base_sec_analog_outputs getClientDataSecAnalogsOutput();
+  base_sec_out_bus getClientDataSecBusOutput();
 
   bool setClientDataFacDiscretes(base_fac_discrete_inputs output);
   bool setClientDataFacAnalog(base_fac_analog_inputs output);
@@ -369,6 +375,7 @@ class SimConnectInterface {
   SimData simData = {};
   // change to non-static when aileron events can be processed via SimConnect
   static SimInput simInput;
+  SimInputPitchTrim simInputPitchTrim = {};
   SimInputRudderTrim simInputRudderTrim = {};
   SimInputAutopilot simInputAutopilot = {};
 
@@ -386,9 +393,9 @@ class SimConnectInterface {
   base_prim_analog_outputs clientDataPrimAnalogOutputs = {};
   base_prim_out_bus clientDataPrimBusOutputs = {};
 
-  // base_sec_discrete_outputs clientDataSecDiscreteOutputs = {};
-  // base_sec_analog_outputs clientDataSecAnalogOutputs = {};
-  // base_sec_out_bus clientDataSecBusOutputs = {};
+  base_sec_discrete_outputs clientDataSecDiscreteOutputs = {};
+  base_sec_analog_outputs clientDataSecAnalogOutputs = {};
+  base_sec_out_bus clientDataSecBusOutputs = {};
 
   base_fac_discrete_outputs clientDataFacDiscreteOutputs = {};
   base_fac_analog_outputs clientDataFacAnalogOutputs = {};
@@ -420,7 +427,34 @@ class SimConnectInterface {
 
   void simConnectProcessDispatchMessage(SIMCONNECT_RECV* pData, DWORD* cbData);
 
+  /**
+   * @brief Process a SimConnect event.
+   *
+   * These events are triggered by the SimConnect clients usually calling
+   * `SimConnect_TransmitClientEvent` and have exactly one data parameter stored
+   * in the event->dwData field of the SIMCONNECT_RECV_EVENT struct.
+   *
+   * @param event The pointer to the corresponding event data
+   * @see https://docs.flightsimulator.com/flighting/html/Programming_Tools/SimConnect/API_Reference/Events_And_Data/SimConnect_TransmitClientEvent.htm
+   */
   void simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* event);
+
+  /**
+   * @brief Process a SimConnect EX1 event with up to 5 parameter.
+   *
+   * These events are triggered by the SimConnect clients usually calling
+   * `SimConnect_TransmitClientEvent_EX1` and have up to 5 data parameter stored
+   * in the event->dwData0-4 fields of the SIMCONNECT_RECV_EVENT_EX1 struct.
+   *
+   * As currently the fbw only uses events with one parameter, this function is
+   * only used as a wrapper so that `SimConnect_TransmitClientEvent_EX1` can be
+   * used by clients. It will essentially call `processEventWithOneParam` and ignore
+   * all other parameters.
+   *
+   * @param event The pointer to the corresponding event data
+   * @see https://docs.flightsimulator.com/flighting/html/Programming_Tools/SimConnect/API_Reference/Events_And_Data/SimConnect_TransmitClientEvent_EX1.htm
+   */
+  void simConnectProcessEvent_EX1(const SIMCONNECT_RECV_EVENT_EX1* event);
 
   void simConnectProcessSimObjectData(const SIMCONNECT_RECV_SIMOBJECT_DATA* data);
 
@@ -444,4 +478,13 @@ class SimConnectInterface {
   static bool isSimConnectDataTypeStruct(SIMCONNECT_DATATYPE dataType);
 
   static std::string getSimConnectExceptionString(SIMCONNECT_EXCEPTION exception);
+
+  private:
+
+   /**
+   * @brief Process a SimConnect event with one parameter.
+   * @param eventId Specifies the ID of the client event.
+   * @param data0 Double word containing any additional number required by the event.
+    */
+   void processEventWithOneParam(const DWORD eventId, const DWORD data0);
 };

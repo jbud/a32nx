@@ -1,7 +1,11 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 import { Phase, PreFlightPhase, TakeOffPhase, ClimbPhase, CruisePhase, DescentPhase, ApproachPhase, GoAroundPhase, DonePhase } from '@fmgc/flightphase/Phase';
+import { Arinc429Word, ConfirmationNode } from '@flybywiresim/fbw-sdk';
 import { VerticalMode } from '@shared/autopilot';
-import { FmgcFlightPhase, isAnEngineOn, isOnGround, isReady, isSlewActive } from '@shared/flightphase';
-import { ConfirmationNode } from '@shared/logic';
+import { FmgcFlightPhase, isAllEngineOn, isAnEngineOn, isOnGround, isReady, isSlewActive } from '@shared/flightphase';
 
 function canInitiateDes(distanceToDestination: number): boolean {
     const fl = Math.round(Simplane.getAltitude() / 100);
@@ -131,8 +135,8 @@ export class FlightPhaseManager {
 
     handleNewDestinationAirportEntered(): void {
         if (this.activePhase === FmgcFlightPhase.GoAround) {
-            const accAlt = SimVar.GetSimVarValue('L:AIRLINER_ACC_ALT_GOAROUND', 'Number');
-            if (Simplane.getAltitude() > accAlt) {
+            const accAlt = isAllEngineOn() ? Arinc429Word.fromSimVarValue('L:A32NX_FM1_MISSED_ACC_ALT') : Arinc429Word.fromSimVarValue('L:A32NX_FM1_MISSED_EO_ACC_ALT');
+            if (Simplane.getAltitude() > accAlt.valueOr(0)) {
                 this.changePhase(FmgcFlightPhase.Climb);
             }
         }

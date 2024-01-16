@@ -1,17 +1,23 @@
 #!/bin/bash
 
+# Copyright (c) 2021-2023 FlyByWire Simulations
+#
+# SPDX-License-Identifier: GPL-3.0
+
 # get directory of this script relative to root
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 COMMON_DIR="${DIR}/../../../../fbw-common/src/wasm"
 OUTPUT="${DIR}/../../../out/flybywire-aircraft-a320-neo/SimObjects/AirPlanes/FlyByWire_A320_NEO/panel/fadec.wasm"
 
 if [ "$1" == "--debug" ]; then
+  WASMLD_ARGS=""
   CLANG_ARGS="-g"
 else
-  WASMLD_ARGS="--strip-debug"
+  WASMLD_ARGS="-O2 --lto-O2 --strip-debug"
+  CLANG_ARGS="-flto -O2 -DNDEBUG"
 fi
 
-set -ex
+set -e
 
 # create temporary folder for o files
 mkdir -p "${DIR}/obj"
@@ -27,7 +33,6 @@ clang++ \
   -Wno-macro-redefined \
   --sysroot "${MSFS_SDK}/WASM/wasi-sysroot" \
   -target wasm32-unknown-wasi \
-  -flto \
   -D_MSFS_WASM=1 \
   -D__wasi__ \
   -D_LIBCPP_HAS_NO_THREADS \
@@ -37,13 +42,14 @@ clang++ \
   -fno-exceptions \
   -fms-extensions \
   -fvisibility=hidden \
-  -O3 \
   -I "${MSFS_SDK}/WASM/include" \
   -I "${MSFS_SDK}/SimConnect SDK/include" \
   -I "${COMMON_DIR}/fadec_common/src" \
   -I "${COMMON_DIR}/fbw_common/src/inih" \
   -I "${DIR}/common" \
-  "${DIR}/src/FadecGauge.cpp"
+  "${DIR}/src/FadecGauge.cpp" \
+  "${DIR}/src/Arinc429.cpp" \
+  "${DIR}/src/Arinc429Utils.cpp"
 
 # restore directory
 popd
@@ -61,7 +67,6 @@ wasm-ld \
   --export __wasm_call_ctors \
   --export-table \
   --gc-sections \
-  -O3 --lto-O3 \
   -lc++ -lc++abi \
   ${DIR}/obj/*.o \
   -o $OUTPUT

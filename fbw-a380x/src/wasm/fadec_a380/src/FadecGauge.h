@@ -21,15 +21,13 @@
 #include <string>
 
 #include "EngineControl.h"
-//#include "ThrustLimits.h"
+// #include "ThrustLimits.h"
 #include "RegPolynomials.h"
 #include "SimVars.h"
 #include "Tables.h"
 #include "common.h"
 
 #define DEFAULT_AIRCRAFT_REGISTRATION "ASX380"
-
-using namespace std;
 
 class FadecGauge {
  private:
@@ -59,11 +57,17 @@ class FadecGauge {
       SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::PayloadStation8, "PAYLOAD STATION WEIGHT:8", "Pounds");
 
       // SimConnect Tanker Definitions
-      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelLeftMain, "FUEL TANK LEFT MAIN QUANTITY", "Gallons");
-      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelRightMain, "FUEL TANK RIGHT MAIN QUANTITY", "Gallons");
-      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelCenterMain, "FUEL TANK CENTER QUANTITY", "Gallons");
-      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelLeftAux, "FUEL TANK LEFT AUX QUANTITY", "Gallons");
-      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelRightAux, "FUEL TANK RIGHT AUX QUANTITY", "Gallons");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelSystemLeftOuter, "FUELSYSTEM TANK QUANTITY:1", "Gallons");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelSystemFeedOne, "FUELSYSTEM TANK QUANTITY:2", "Gallons");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelSystemLeftMid, "FUELSYSTEM TANK QUANTITY:3", "Gallons");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelSystemLeftInner, "FUELSYSTEM TANK QUANTITY:4", "Gallons");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelSystemFeedTwo, "FUELSYSTEM TANK QUANTITY:5", "Gallons");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelSystemFeedThree, "FUELSYSTEM TANK QUANTITY:6", "Gallons");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelSystemRightInner, "FUELSYSTEM TANK QUANTITY:7", "Gallons");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelSystemRightMid, "FUELSYSTEM TANK QUANTITY:8", "Gallons");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelSystemFeedFour, "FUELSYSTEM TANK QUANTITY:9", "Gallons");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelSystemRightOuter, "FUELSYSTEM TANK QUANTITY:10", "Gallons");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::FuelSystemTrim, "FUELSYSTEM TANK QUANTITY:11", "Gallons");
 
       // SimConnect Oil Temperature Definitions
       SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::OilTempEngine1, "GENERAL ENG OIL TEMPERATURE:1", "Celsius");
@@ -78,10 +82,10 @@ class FadecGauge {
       SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::OilPsiEngine4, "GENERAL ENG OIL PRESSURE:4", "Psi");
 
       // SimConnect Engine Start Definitions
-      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::StartCN2Engine1, "TURB ENG CORRECTED N2:1", "Percent");
-      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::StartCN2Engine2, "TURB ENG CORRECTED N2:2", "Percent");
-      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::StartCN2Engine3, "TURB ENG CORRECTED N2:3", "Percent");
-      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::StartCN2Engine4, "TURB ENG CORRECTED N2:4", "Percent");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::StartCN3Engine1, "TURB ENG CORRECTED N2:1", "Percent");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::StartCN3Engine2, "TURB ENG CORRECTED N2:2", "Percent");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::StartCN3Engine3, "TURB ENG CORRECTED N2:3", "Percent");
+      SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::StartCN3Engine4, "TURB ENG CORRECTED N2:4", "Percent");
       // Simulation Data
       SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::SimulationDataTypeId, "SIMULATION TIME", "NUMBER");
       SimConnect_AddToDataDefinition(hSimConnect, DataTypesID::SimulationDataTypeId, "SIMULATION RATE", "NUMBER");
@@ -111,6 +115,7 @@ class FadecGauge {
     }
 
     isConnected = true;
+    simConnectRequestData();
 
     return true;
   }
@@ -122,7 +127,6 @@ class FadecGauge {
   bool onUpdate(double deltaTime) {
     if (isConnected == true) {
       // read simulation data from simconnect
-      simConnectRequestData();
       simConnectReadData();
       // detect pause
       if ((simulationData.simulationTime == previousSimulationTime) || (simulationData.simulationTime < 0.2)) {
@@ -140,16 +144,16 @@ class FadecGauge {
     return true;
   }
 
-    bool simConnectRequestDataAcftInfo() {
+  bool simConnectRequestDataAcftInfo() {
     // check if we are connected
     if (!isConnected) {
       return false;
     }
 
     // request data
-    return S_OK == SimConnect_RequestDataOnSimObject(hSimConnect, 8, DataTypesID::AcftInfo, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_ONCE);
+    return S_OK ==
+           SimConnect_RequestDataOnSimObject(hSimConnect, 8, DataTypesID::AcftInfo, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_ONCE);
   }
-
 
   bool simConnectRequestData() {
     // check if we are connected
@@ -159,7 +163,7 @@ class FadecGauge {
 
     // request data
     HRESULT result = SimConnect_RequestDataOnSimObject(hSimConnect, 0, DataTypesID::SimulationDataTypeId, SIMCONNECT_OBJECT_ID_USER,
-                                                       SIMCONNECT_PERIOD_ONCE);
+                                                       SIMCONNECT_PERIOD_VISUAL_FRAME);
 
     // check result of data request
     if (result != S_OK) {
@@ -192,12 +196,12 @@ class FadecGauge {
     switch (pData->dwID) {
       case SIMCONNECT_RECV_ID_OPEN:
         // connection established
-        cout << "FADEC: SimConnect connection established" << endl;
+        std::cout << "FADEC: SimConnect connection established" << std::endl;
         break;
 
       case SIMCONNECT_RECV_ID_QUIT:
         // connection lost
-        cout << "FADEC: Received SimConnect connection quit message" << endl;
+        std::cout << "FADEC: Received SimConnect connection quit message" << std::endl;
         break;
 
       case SIMCONNECT_RECV_ID_SIMOBJECT_DATA:
@@ -207,10 +211,10 @@ class FadecGauge {
 
       case SIMCONNECT_RECV_ID_EXCEPTION:
         // exception
-        cout << "FADEC: Exception in SimConnect connection: ";
-        cout << getSimConnectExceptionString(
+        std::cout << "FADEC: Exception in SimConnect connection: ";
+        std::cout << getSimConnectExceptionString(
             static_cast<SIMCONNECT_EXCEPTION>(static_cast<SIMCONNECT_RECV_EXCEPTION*>(pData)->dwException));
-        cout << endl;
+        std::cout << std::endl;
         break;
 
       default:
@@ -227,16 +231,16 @@ class FadecGauge {
         return;
       case 8:
         simulationDataLivery = *((SimulationDataLivery*)&data->dwData);
-        if(simulationDataLivery.atc_id[0] == '\0') {
-          cout << "FADEC: Use default aircraft registration " << DEFAULT_AIRCRAFT_REGISTRATION << endl;;
+        if (simulationDataLivery.atc_id[0] == '\0') {
+          std::cout << "FADEC: Use default aircraft registration " << DEFAULT_AIRCRAFT_REGISTRATION << std::endl;
           strncpy(simulationDataLivery.atc_id, DEFAULT_AIRCRAFT_REGISTRATION, sizeof(simulationDataLivery.atc_id));
         }
         return;
 
       default:
         // print unknown request id
-        cout << "FADEC: Unknown request id in SimConnect connection: ";
-        cout << data->dwRequestID << endl;
+        std::cout << "FADEC: Unknown request id in SimConnect connection: ";
+        std::cout << data->dwRequestID << std::endl;
         return;
     }
   }
@@ -378,15 +382,15 @@ class FadecGauge {
   }
 
   /*
-  * This function is to call if some data are needed before initialization of the engine (such as aircraft registration).
-  * This has to be done here due to data fetch feature being available after the first PANEL_SERVICE_PRE_DRAW (from what I have observed)
-  * This problem was observed when engine configuration file was under development
-  * Reach Julian Sebline on Discord if information needed
-  *
-  * Modify this function as needed
-  *
-  * @return true if all the requirements to initialize the engine are fulfilled
-  */
+   * This function is to call if some data are needed before initialization of the engine (such as aircraft registration).
+   * This has to be done here due to data fetch feature being available after the first PANEL_SERVICE_PRE_DRAW (from what I have observed)
+   * This problem was observed when engine configuration file was under development
+   * Reach Julian Sebline on Discord if information needed
+   *
+   * Modify this function as needed
+   *
+   * @return true if all the requirements to initialize the engine are fulfilled
+   */
   bool fetchNeededData() {
     // This two lines request aircraft registration
     simConnectRequestDataAcftInfo();
@@ -394,7 +398,7 @@ class FadecGauge {
 
     _isReady = isRegistrationFound();
 
-    if(_isReady) {
+    if (_isReady) {
       EngineControlInstance.initialize(simulationDataLivery.atc_id);
     }
 

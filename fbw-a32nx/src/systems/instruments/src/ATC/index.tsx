@@ -1,9 +1,13 @@
-import './style.scss';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 import React, { useCallback, useEffect, useState } from 'react';
-import { useSimVar, useSplitSimVar } from '@instruments/common/simVars';
-import { useInteractionEvent, useUpdate } from '@instruments/common/hooks';
+import { useSimVar, useSplitSimVar, useInteractionEvent, useUpdate } from '@flybywiresim/fbw-sdk';
 import { TcasComputer } from '@tcas/index';
 import { render } from '@instruments/common/index';
+
+import './style.scss';
 
 const getDigitsFromBco16 = (code: number): number[] => {
     let codeCopy = code;
@@ -28,6 +32,7 @@ const PoweredXpdrDisplay = () => {
     const [clrPressed, setClrPressed] = useState(false);
     const [displayResetTimer, setDisplayResetTimer] = useState(-1);
     const [ltsTest] = useSimVar('L:A32NX_OVHD_INTLT_ANN', 'Number', 250);
+    const [dc2IsPowered] = useSimVar('L:A32NX_ELEC_DC_2_BUS_IS_POWERED', 'Bool', 250);
     const [tcas] = useState(() => new TcasComputer());
 
     const [transponderCode, setTransponderCode] = useSplitSimVar('TRANSPONDER CODE:1', 'Bco16', 'K:XPNDR_SET', 'Bco16');
@@ -98,7 +103,7 @@ const PoweredXpdrDisplay = () => {
 
     return (
         <svg className="atc-svg">
-            <text x="15%" y="45%">{ltsTest === 0 ? '8888' : codeInDisplay.join('')}</text>
+            <text x="15%" y="45%">{ltsTest === 0 && dc2IsPowered ? '8888' : codeInDisplay.join('')}</text>
         </svg>
     );
 };

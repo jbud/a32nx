@@ -23,12 +23,12 @@
  * SOFTWARE.
  */
 
-import { NXDataStore } from '@shared/persistence';
-import { LegType } from '@fmgc/types/fstypes/FSEnums';
-import { FlightLevel } from '@fmgc/guidance/vnav/verticalFlightPlan/VerticalFlightPlan';
+import { NXDataStore } from '@flybywiresim/fbw-sdk';
+import { LegType } from '@flybywiresim/fbw-sdk';
 import { LnavConfig } from '@fmgc/guidance/LnavConfig';
 import { ApproachStats, HoldData } from '@fmgc/flightplanning/data/flightplan';
 import { SegmentType } from '@fmgc/wtsdk';
+import { ICAO } from '@microsoft/msfs-sdk';
 import { ManagedFlightPlan } from './ManagedFlightPlan';
 import { GPS } from './GPS';
 import { FlightPlanSegment } from './FlightPlanSegment';
@@ -198,8 +198,6 @@ export class FlightPlanManager {
      * Loads the flight plans from data storage.
      */
     public _loadFlightPlans(): void {
-        this._getFlightPlan();
-
         if (this._flightPlans.length === 0) {
             const newFpln = new ManagedFlightPlan();
             newFpln.setParentInstrument(this._parentInstrument);
@@ -356,6 +354,7 @@ export class FlightPlanManager {
             }
             this.updateFlightPlanVersion().catch(console.error);
         }
+        NXDataStore.set('PLAN_ORIGIN', ICAO.getIdent(icao));
         callback();
     }
 
@@ -462,9 +461,12 @@ export class FlightPlanManager {
      * Gets the next waypoint following the active waypoint.
      * @param forceSimVarCall Unused
      */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    public getNextActiveWaypoint(forceSimVarCall = false): WayPoint {
-        const currentFlightPlan = this._flightPlans[this._currentFlightPlanIndex];
+    public getNextActiveWaypoint(forceSimVarCall = false, flightPlanIndex = NaN): WayPoint {
+        if (isNaN(flightPlanIndex)) {
+            flightPlanIndex = this._currentFlightPlanIndex;
+        }
+
+        const currentFlightPlan = this._flightPlans[flightPlanIndex];
         const nextWaypointIndex = currentFlightPlan.activeWaypointIndex + 1;
 
         return currentFlightPlan.getWaypoint(nextWaypointIndex);
@@ -591,7 +593,7 @@ export class FlightPlanManager {
     /**
      * Gets the currently selected departure information for the current flight plan.
      */
-    public getDeparture(flightPlanIndex = NaN): WayPoint | undefined {
+    public getDeparture(flightPlanIndex = NaN): RawDeparture | undefined {
         const origin = this.getOrigin();
         if (Number.isNaN(flightPlanIndex)) {
             flightPlanIndex = this._currentFlightPlanIndex;
@@ -783,6 +785,7 @@ export class FlightPlanManager {
         }
 
         this.updateFlightPlanVersion().catch(console.error);
+        NXDataStore.set('PLAN_DESTINATION', ICAO.getIdent(icao));
         callback();
     }
 
@@ -1029,7 +1032,7 @@ export class FlightPlanManager {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public truncateWaypoints(index: number, thenSetActive = false, callback = () => { }): void {
         const fp = this._flightPlans[this._currentFlightPlanIndex];
-        for (let i = fp.length; i >= index; i--) {
+        for (let i = fp.length; i > index; i--) {
             fp.removeWaypoint(index);
         }
 
@@ -1125,9 +1128,13 @@ export class FlightPlanManager {
 
     /**
      * Gets the index value of the origin runway (oneWayRunways) in a flight plan.
+     * @param flightPlanIndex The flight plan to use, or default to the current flight plan being edited
      */
-    public getOriginRunwayIndex(): number {
-        const currentFlightPlan = this._flightPlans[this._currentFlightPlanIndex];
+    public getOriginRunwayIndex(flightPlanIndex: number = undefined): number {
+        if (flightPlanIndex === undefined) {
+            flightPlanIndex = this._currentFlightPlanIndex;
+        }
+        const currentFlightPlan = this._flightPlans[flightPlanIndex];
 
         if (currentFlightPlan.procedureDetails.originRunwayIndex >= 0 && currentFlightPlan.originAirfield) {
             return currentFlightPlan.procedureDetails.originRunwayIndex;
@@ -1137,11 +1144,15 @@ export class FlightPlanManager {
 
     /**
      * Gets the string value of the departure runway in the current flight plan.
+     * @param flightPlanIndex The flight plan to use, or default to the current flight plan being edited
      */
-    public getOriginRunway(): OneWayRunway {
-        const runwayIndex = this.getOriginRunwayIndex();
+    public getOriginRunway(flightPlanIndex: number = undefined): OneWayRunway | undefined {
+        if (flightPlanIndex === undefined) {
+            flightPlanIndex = this._currentFlightPlanIndex;
+        }
+        const runwayIndex = this.getOriginRunwayIndex(flightPlanIndex);
         if (runwayIndex >= 0) {
-            return this.getOrigin().infos.oneWayRunways[runwayIndex];
+            return (this.getOrigin()?.infos as AirportInfo | undefined)?.oneWayRunways[runwayIndex];
         }
         return undefined;
     }
@@ -1525,8 +1536,8 @@ export class FlightPlanManager {
      * @param forceSimVarCall Unused
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    public isActiveApproach(forceSimVarCall = false): boolean {
-        const currentFlightPlan = this._flightPlans[this._currentFlightPlanIndex];
+    public isActiveApproach(flightPlanIndex = this._currentFlightPlanIndex): boolean {
+        const currentFlightPlan = this._flightPlans[flightPlanIndex];
         return currentFlightPlan.approach.waypoints.length > 0
             && currentFlightPlan.activeWaypointIndex >= currentFlightPlan.approach.offset;
     }
@@ -1634,8 +1645,8 @@ export class FlightPlanManager {
     /**
      * Gets the approach waypoints for the current flight plan.
      */
-    public getApproachWaypoints(): WayPoint[] {
-        return this._flightPlans[this._currentFlightPlanIndex].approach.waypoints;
+    public getApproachWaypoints(flightPlanIndex = this._currentFlightPlanIndex): WayPoint[] {
+        return this._flightPlans[flightPlanIndex].approach.waypoints;
     }
 
     /**
@@ -1761,32 +1772,6 @@ export class FlightPlanManager {
         return null;
     }
 
-    /**
-     * Gets the current stored flight plan
-     */
-    public _getFlightPlan(): void {
-        if (!LnavConfig.DEBUG_SAVE_FPLN_LOCAL_STORAGE) {
-            return;
-        }
-        const fpln = window.localStorage.getItem(FlightPlanManager.FlightPlanKey);
-        if (fpln === null || fpln === '') {
-            this._flightPlans = [];
-            const initFpln = new ManagedFlightPlan();
-            initFpln.setParentInstrument(this._parentInstrument);
-            this._flightPlans.push(initFpln);
-        } else if (window.localStorage.getItem(FlightPlanManager.FlightPlanCompressedKey) === '1') {
-            this._flightPlans = JSON.parse(LZUTF8.decompress(fpln, { inputEncoding: 'StorageBinaryString' }));
-        } else {
-            try {
-                this._flightPlans = JSON.parse(fpln);
-            } catch (e) {
-                // Assume we failed because compression status did not match up. Try to decompress anyway.
-
-                this._flightPlans = JSON.parse(LZUTF8.decompress(fpln, { inputEncoding: 'StorageBinaryString' }));
-            }
-        }
-    }
-
     public getCurrentFlightPlan(): ManagedFlightPlan {
         return this._flightPlans[this._currentFlightPlanIndex];
     }
@@ -1803,16 +1788,6 @@ export class FlightPlanManager {
             return;
         }
 
-        if (LnavConfig.DEBUG_SAVE_FPLN_LOCAL_STORAGE) {
-            let fpJson = JSON.stringify(this._flightPlans.map((fp) => fp.serialize()));
-            if (fpJson.length > 2500000) {
-                fpJson = LZUTF8.compress(fpJson, { outputEncoding: 'StorageBinaryString' });
-                window.localStorage.setItem(FlightPlanManager.FlightPlanCompressedKey, '1');
-            } else {
-                window.localStorage.setItem(FlightPlanManager.FlightPlanCompressedKey, '0');
-            }
-            window.localStorage.setItem(FlightPlanManager.FlightPlanKey, fpJson);
-        }
         SimVar.SetSimVarValue(FlightPlanManager.FlightPlanVersionKey, 'number', ++this._currentFlightPlanVersion);
         if (NXDataStore.get('FP_SYNC', 'LOAD') === 'SAVE') {
             FlightPlanAsoboSync.SaveToGame(this).catch(console.error);
@@ -1843,7 +1818,7 @@ export class FlightPlanManager {
      * The transition altitude for the origin in the *active* flight plan
      */
     get originTransitionAltitude(): number | undefined {
-        return this.getOriginTransitionAltitude(0);
+        return this.getOriginTransitionAltitude(FlightPlans.Active);
     }
 
     public getOriginTransitionAltitudeIsFromDb(flightPlanIndex: number = 0): boolean {
@@ -1855,7 +1830,7 @@ export class FlightPlanManager {
      * Is the transition altitude for the origin in the *active* flight plan from the database?
      */
     get originTransitionAltitudeIsFromDb(): boolean {
-        return this.getOriginTransitionAltitudeIsFromDb(0);
+        return this.getOriginTransitionAltitudeIsFromDb(FlightPlans.Active);
     }
 
     /**
@@ -1883,7 +1858,7 @@ export class FlightPlanManager {
      * The transition level for the destination in the *active* flight plan
      */
     get destinationTransitionLevel(): FlightLevel | undefined {
-        return this.getDestinationTransitionLevel(0);
+        return this.getDestinationTransitionLevel(FlightPlans.Active);
     }
 
     public getDestinationTransitionLevelIsFromDb(flightPlanIndex: number = this._currentFlightPlanIndex): boolean {
@@ -1895,7 +1870,7 @@ export class FlightPlanManager {
      * Is the transition level for the destination in the *active* flight plan from the database?
      */
     get destinationTransitionLevelIsFromDb(): boolean {
-        return this.getDestinationTransitionLevelIsFromDb(0);
+        return this.getDestinationTransitionLevelIsFromDb(FlightPlans.Active);
     }
 
     /**
@@ -1921,7 +1896,7 @@ export class FlightPlanManager {
     public isWaypointInUse(icao: string): boolean {
         for (const fp of this._flightPlans) {
             for (let i = 0; i < fp?.waypoints.length; i++) {
-                if (fp.getWaypoint(i).icao === icao) {
+                if (fp?.getWaypoint(i)?.icao === icao) {
                     return true;
                 }
             }
@@ -1995,5 +1970,28 @@ export class FlightPlanManager {
         }
 
         return FlightArea.Enroute;
+    }
+
+    public addOrUpdateCruiseStep(waypoint: WayPoint, toAltitude: Feet, waypointIndex?: number): void {
+        this._flightPlans[this._currentFlightPlanIndex].addOrUpdateCruiseStep(waypoint, toAltitude, waypointIndex);
+        // Unignore all of them, so a new VNAV computation with all steps is done
+        this.unignoreAllCruiseSteps();
+        this.updateFlightPlanVersion().catch(console.error);
+    }
+
+    public removeCruiseStep(waypoint: WayPoint): void {
+        this._flightPlans[this._currentFlightPlanIndex].removeCruiseStep(waypoint);
+        // Unignore all of them, so a new VNAV computation with all steps is done
+        this.unignoreAllCruiseSteps();
+        this.updateFlightPlanVersion().catch(console.error);
+    }
+
+    public findWaypointIndexByIdent(ident: string): number {
+        return this._flightPlans[this._currentFlightPlanIndex].findWaypointIndexByIdent(ident);
+    }
+
+    private unignoreAllCruiseSteps(): void {
+        this._flightPlans[this._currentFlightPlanIndex].unignoreAllCruiseSteps();
+        this.updateFlightPlanVersion().catch(console.error);
     }
 }

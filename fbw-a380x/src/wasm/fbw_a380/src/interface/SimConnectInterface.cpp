@@ -290,6 +290,11 @@ bool SimConnectInterface::prepareSimInputSimConnectDataDefinitions() {
   result &= addInputDataDefinition(hSimConnect, 0, Events::ELEV_DOWN, "ELEV_DOWN", true);
   result &= addInputDataDefinition(hSimConnect, 0, Events::ELEV_UP, "ELEV_UP", true);
 
+  result &= addInputDataDefinition(hSimConnect, 0, Events::ELEV_TRIM_DN, "ELEV_TRIM_DN", true);
+  result &= addInputDataDefinition(hSimConnect, 0, Events::ELEV_TRIM_UP, "ELEV_TRIM_UP", true);
+  result &= addInputDataDefinition(hSimConnect, 0, Events::ELEVATOR_TRIM_SET, "ELEVATOR_TRIM_SET", true);
+  result &= addInputDataDefinition(hSimConnect, 0, Events::AXIS_ELEV_TRIM_SET, "AXIS_ELEV_TRIM_SET", true);
+
   result &= addInputDataDefinition(hSimConnect, 0, Events::AP_MASTER, "AP_MASTER", true);
   result &= addInputDataDefinition(hSimConnect, 0, Events::AUTOPILOT_OFF, "AUTOPILOT_OFF", false);
   result &= addInputDataDefinition(hSimConnect, 0, Events::AUTOPILOT_ON, "AUTOPILOT_ON", true);
@@ -789,88 +794,87 @@ bool SimConnectInterface::prepareClientDataDefinitions() {
     }
   }
 
-  //  // ------------------------------------------------------------------------------------------------------------------
-  //
-  //  // map client id
-  //  result &= SimConnect_MapClientDataNameToID(hSimConnect, "A32NX_CLIENT_DATA_SEC_DISCRETE_INPUT", ClientData::SEC_DISCRETE_INPUTS);
-  //  // create client data
-  //  result &= SimConnect_CreateClientData(hSimConnect, ClientData::SEC_DISCRETE_INPUTS, sizeof(base_sec_discrete_inputs),
-  //                                        SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
-  //  // add data definitions
-  //  for (int i = 0; i < 26; i++) {
-  //    result &= SimConnect_AddToClientDataDefinition(hSimConnect, ClientData::SEC_DISCRETE_INPUTS, SIMCONNECT_CLIENTDATAOFFSET_AUTO,
-  //                                                   SIMCONNECT_CLIENTDATATYPE_INT8);
-  //  }
-  //
-  //  // ------------------------------------------------------------------------------------------------------------------
-  //
-  //  // map client id
-  //  result &= SimConnect_MapClientDataNameToID(hSimConnect, "A32NX_CLIENT_DATA_SEC_ANALOG_INPUT", ClientData::SEC_ANALOG_INPUTS);
-  //  // create client data
-  //  result &= SimConnect_CreateClientData(hSimConnect, ClientData::SEC_ANALOG_INPUTS, sizeof(base_sec_analog_inputs),
-  //                                        SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
-  //  // add data definitions
-  //  for (int i = 0; i < 18; i++) {
-  //    result &= SimConnect_AddToClientDataDefinition(hSimConnect, ClientData::SEC_ANALOG_INPUTS, SIMCONNECT_CLIENTDATAOFFSET_AUTO,
-  //                                                   SIMCONNECT_CLIENTDATATYPE_FLOAT64);
-  //  }
-  //
-  //  // ------------------------------------------------------------------------------------------------------------------
-  //
-  //  // map client id
-  //  result &= SimConnect_MapClientDataNameToID(hSimConnect, "A32NX_CLIENT_DATA_SEC_DISCRETES_OUTPUT", ClientData::SEC_DISCRETE_OUTPUTS);
-  //  // create client data
-  //  result &= SimConnect_CreateClientData(hSimConnect, ClientData::SEC_DISCRETE_OUTPUTS, sizeof(base_sec_discrete_outputs),
-  //                                        SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
-  //  // add data definitions
-  //  for (int i = 0; i < 9; i++) {
-  //    result &= SimConnect_AddToClientDataDefinition(hSimConnect, ClientData::SEC_DISCRETE_OUTPUTS, SIMCONNECT_CLIENTDATAOFFSET_AUTO,
-  //                                                   SIMCONNECT_CLIENTDATATYPE_INT8);
-  //  }
-  //
-  //  // request data to be updated when set
-  //  result &= SimConnect_RequestClientData(hSimConnect, ClientData::SEC_DISCRETE_OUTPUTS, ClientData::SEC_DISCRETE_OUTPUTS,
-  //                                         ClientData::SEC_DISCRETE_OUTPUTS, SIMCONNECT_CLIENT_DATA_PERIOD_ON_SET);
-  //
-  //  // ------------------------------------------------------------------------------------------------------------------
-  //
-  //  // map client id
-  //  result &= SimConnect_MapClientDataNameToID(hSimConnect, "A32NX_CLIENT_DATA_SEC_ANALOGS_OUTPUT", ClientData::SEC_ANALOG_OUTPUTS);
-  //  // create client data
-  //  result &= SimConnect_CreateClientData(hSimConnect, ClientData::SEC_ANALOG_OUTPUTS, sizeof(base_sec_analog_outputs),
-  //                                        SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
-  //  // add data definitions
-  //  for (int i = 0; i < 7; i++) {
-  //    result &= SimConnect_AddToClientDataDefinition(hSimConnect, ClientData::SEC_ANALOG_OUTPUTS, SIMCONNECT_CLIENTDATAOFFSET_AUTO,
-  //                                                   SIMCONNECT_CLIENTDATATYPE_FLOAT64);
-  //  }
-  //
-  //  // request data to be updated when set
-  //  result &= SimConnect_RequestClientData(hSimConnect, ClientData::SEC_ANALOG_OUTPUTS, ClientData::SEC_ANALOG_OUTPUTS,
-  //                                         ClientData::SEC_ANALOG_OUTPUTS, SIMCONNECT_CLIENT_DATA_PERIOD_ON_SET);
-  //
-  //  // ------------------------------------------------------------------------------------------------------------------
-  //
-  //  for (int i = 0; i < 2; i++) {
-  //    auto defineId = ClientData::SEC_1_BUS_OUTPUT + i;
-  //
-  //    // map client id
-  //    result &= SimConnect_MapClientDataNameToID(hSimConnect, ("A32NX_CLIENT_DATA_SEC_" + std::to_string(i + 1) + "_BUS").c_str(),
-  //    defineId);
-  //    // create client data
-  //    result &= SimConnect_CreateClientData(hSimConnect, defineId, sizeof(base_sec_out_bus), SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
-  //    // add data definitions
-  //    for (int i = 0; i < 16; i++) {
-  //      result &=
-  //          SimConnect_AddToClientDataDefinition(hSimConnect, defineId, SIMCONNECT_CLIENTDATAOFFSET_AUTO,
-  //          SIMCONNECT_CLIENTDATATYPE_FLOAT64);
-  //    }
-  //
-  //    // request data to be updated when set
-  //    if (i == secDisabled) {
-  //      result &= SimConnect_RequestClientData(hSimConnect, defineId, defineId, defineId, SIMCONNECT_CLIENT_DATA_PERIOD_ON_SET);
-  //    }
-  //  }
+  // ------------------------------------------------------------------------------------------------------------------
+
+  // map client id
+  result &= SimConnect_MapClientDataNameToID(hSimConnect, "A32NX_CLIENT_DATA_A380_SEC_DISCRETE_INPUT", ClientData::SEC_DISCRETE_INPUTS);
+  // create client data
+  result &= SimConnect_CreateClientData(hSimConnect, ClientData::SEC_DISCRETE_INPUTS, sizeof(base_sec_discrete_inputs),
+                                        SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
+  // add data definitions
+  for (int i = 0; i < 13; i++) {
+    result &= SimConnect_AddToClientDataDefinition(hSimConnect, ClientData::SEC_DISCRETE_INPUTS, SIMCONNECT_CLIENTDATAOFFSET_AUTO,
+                                                   SIMCONNECT_CLIENTDATATYPE_INT8);
+  }
+
+  // ------------------------------------------------------------------------------------------------------------------
+
+  // map client id
+  result &= SimConnect_MapClientDataNameToID(hSimConnect, "A32NX_CLIENT_DATA_A380_SEC_ANALOG_INPUT", ClientData::SEC_ANALOG_INPUTS);
+  // create client data
+  result &= SimConnect_CreateClientData(hSimConnect, ClientData::SEC_ANALOG_INPUTS, sizeof(base_sec_analog_inputs),
+                                        SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
+  // add data definitions
+  for (int i = 0; i < 20; i++) {
+    result &= SimConnect_AddToClientDataDefinition(hSimConnect, ClientData::SEC_ANALOG_INPUTS, SIMCONNECT_CLIENTDATAOFFSET_AUTO,
+                                                   SIMCONNECT_CLIENTDATATYPE_FLOAT64);
+  }
+
+  // ------------------------------------------------------------------------------------------------------------------
+
+  // map client id
+  result &= SimConnect_MapClientDataNameToID(hSimConnect, "A32NX_CLIENT_DATA_A380_SEC_DISCRETES_OUTPUT", ClientData::SEC_DISCRETE_OUTPUTS);
+  // create client data
+  result &= SimConnect_CreateClientData(hSimConnect, ClientData::SEC_DISCRETE_OUTPUTS, sizeof(base_sec_discrete_outputs),
+                                        SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
+  // add data definitions
+  for (int i = 0; i < 14; i++) {
+    result &= SimConnect_AddToClientDataDefinition(hSimConnect, ClientData::SEC_DISCRETE_OUTPUTS, SIMCONNECT_CLIENTDATAOFFSET_AUTO,
+                                                   SIMCONNECT_CLIENTDATATYPE_INT8);
+  }
+
+  // request data to be updated when set
+  result &= SimConnect_RequestClientData(hSimConnect, ClientData::SEC_DISCRETE_OUTPUTS, ClientData::SEC_DISCRETE_OUTPUTS,
+                                         ClientData::SEC_DISCRETE_OUTPUTS, SIMCONNECT_CLIENT_DATA_PERIOD_ON_SET);
+
+  // ------------------------------------------------------------------------------------------------------------------
+
+  // map client id
+  result &= SimConnect_MapClientDataNameToID(hSimConnect, "A32NX_CLIENT_DATA_A380_SEC_ANALOGS_OUTPUT", ClientData::SEC_ANALOG_OUTPUTS);
+  // create client data
+  result &= SimConnect_CreateClientData(hSimConnect, ClientData::SEC_ANALOG_OUTPUTS, sizeof(base_sec_analog_outputs),
+                                        SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
+  // add data definitions
+  for (int i = 0; i < 15; i++) {
+    result &= SimConnect_AddToClientDataDefinition(hSimConnect, ClientData::SEC_ANALOG_OUTPUTS, SIMCONNECT_CLIENTDATAOFFSET_AUTO,
+                                                   SIMCONNECT_CLIENTDATATYPE_FLOAT64);
+  }
+
+  // request data to be updated when set
+  result &= SimConnect_RequestClientData(hSimConnect, ClientData::SEC_ANALOG_OUTPUTS, ClientData::SEC_ANALOG_OUTPUTS,
+                                         ClientData::SEC_ANALOG_OUTPUTS, SIMCONNECT_CLIENT_DATA_PERIOD_ON_SET);
+
+  // ------------------------------------------------------------------------------------------------------------------
+
+  for (int i = 0; i < 3; i++) {
+    auto defineId = ClientData::SEC_1_BUS_OUTPUT + i;
+
+    // map client id
+    result &=
+        SimConnect_MapClientDataNameToID(hSimConnect, ("A32NX_CLIENT_DATA_A380_SEC_" + std::to_string(i + 1) + "_BUS").c_str(), defineId);
+    // create client data
+    result &= SimConnect_CreateClientData(hSimConnect, defineId, sizeof(base_sec_out_bus), SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
+    // add data definitions
+    for (int i = 0; i < 25; i++) {
+      result &=
+          SimConnect_AddToClientDataDefinition(hSimConnect, defineId, SIMCONNECT_CLIENTDATAOFFSET_AUTO, SIMCONNECT_CLIENTDATATYPE_FLOAT64);
+    }
+
+    // request data to be updated when set
+    if (i == secDisabled) {
+      result &= SimConnect_RequestClientData(hSimConnect, defineId, defineId, defineId, SIMCONNECT_CLIENT_DATA_PERIOD_ON_SET);
+    }
+  }
 
   // ------------------------------------------------------------------------------------------------------------------
 
@@ -1104,26 +1108,6 @@ bool SimConnectInterface::prepareClientDataDefinitions() {
   return SUCCEEDED(result);
 }
 
-bool SimConnectInterface::requestReadData() {
-  // check if we are connected
-  if (!isConnected) {
-    return false;
-  }
-
-  // request data
-  if (!requestData()) {
-    return false;
-  }
-
-  // read data
-  if (!readData()) {
-    return false;
-  }
-
-  // success
-  return true;
-}
-
 bool SimConnectInterface::requestData() {
   // check if we are connected
   if (!isConnected) {
@@ -1131,7 +1115,7 @@ bool SimConnectInterface::requestData() {
   }
 
   // request data
-  HRESULT result = SimConnect_RequestDataOnSimObject(hSimConnect, 0, 0, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_ONCE);
+  HRESULT result = SimConnect_RequestDataOnSimObject(hSimConnect, 0, 0, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_VISUAL_FRAME);
 
   // check result of data request
   if (result != S_OK) {
@@ -1229,6 +1213,10 @@ SimInputAutopilot SimConnectInterface::getSimInputAutopilot() {
   return simInputAutopilot;
 }
 
+SimInputPitchTrim SimConnectInterface::getSimInputPitchTrim() {
+  return simInputPitchTrim;
+}
+
 SimInputRudderTrim SimConnectInterface::getSimInputRudderTrim() {
   return simInputRudderTrim;
 }
@@ -1252,6 +1240,11 @@ void SimConnectInterface::resetSimInputAutopilot() {
   simInputAutopilot.APPR_push = 0;
   simInputAutopilot.EXPED_push = 0;
   simInputAutopilot.DIR_TO_trigger = 0;
+}
+
+void SimConnectInterface::resetSimInputPitchTrim() {
+  simInputPitchTrim.pitchTrimSwitchUp = false;
+  simInputPitchTrim.pitchTrimSwitchDown = false;
 }
 
 void SimConnectInterface::resetSimInputRudderTrim() {
@@ -1304,21 +1297,17 @@ bool SimConnectInterface::setClientDataPrimBusInput(base_prim_out_bus output, in
   return sendClientData(ClientData::PRIM_1_BUS_OUTPUT + primIndex, sizeof(output), &output);
 }
 
-// bool SimConnectInterface::setClientDataSecDiscretes(base_sec_discrete_inputs output) {
-//   return sendClientData(ClientData::SEC_DISCRETE_INPUTS, sizeof(output), &output);
-// }
-//
-// bool SimConnectInterface::setClientDataSecAnalog(base_sec_analog_inputs output) {
-//   return sendClientData(ClientData::SEC_ANALOG_INPUTS, sizeof(output), &output);
-// }
-//
-// bool SimConnectInterface::setClientDataSecBus(base_sec_out_bus output, int secIndex) {
-//   if (secIndex < 2) {
-//     return sendClientData(ClientData::SEC_1_BUS_OUTPUT + secIndex, sizeof(output), &output);
-//   } else {
-//     return false;
-//   }
-// }
+bool SimConnectInterface::setClientDataSecDiscretes(base_sec_discrete_inputs output) {
+  return sendClientData(ClientData::SEC_DISCRETE_INPUTS, sizeof(output), &output);
+}
+
+bool SimConnectInterface::setClientDataSecAnalog(base_sec_analog_inputs output) {
+  return sendClientData(ClientData::SEC_ANALOG_INPUTS, sizeof(output), &output);
+}
+
+bool SimConnectInterface::setClientDataSecBus(base_sec_out_bus output, int secIndex) {
+  return sendClientData(ClientData::SEC_1_BUS_OUTPUT + secIndex, sizeof(output), &output);
+}
 
 bool SimConnectInterface::setClientDataFacDiscretes(base_fac_discrete_inputs output) {
   return sendClientData(ClientData::FAC_DISCRETE_INPUTS, sizeof(output), &output);
@@ -1344,17 +1333,17 @@ base_prim_out_bus SimConnectInterface::getClientDataPrimBusOutput() {
   return clientDataPrimBusOutputs;
 }
 
-// base_sec_discrete_outputs SimConnectInterface::getClientDataSecDiscretesOutput() {
-//   return clientDataSecDiscreteOutputs;
-// }
-//
-// base_sec_analog_outputs SimConnectInterface::getClientDataSecAnalogsOutput() {
-//   return clientDataSecAnalogOutputs;
-// }
-//
-// base_sec_out_bus SimConnectInterface::getClientDataSecBusOutput() {
-//   return clientDataSecBusOutputs;
-// }
+base_sec_discrete_outputs SimConnectInterface::getClientDataSecDiscretesOutput() {
+  return clientDataSecDiscreteOutputs;
+}
+
+base_sec_analog_outputs SimConnectInterface::getClientDataSecAnalogsOutput() {
+  return clientDataSecAnalogOutputs;
+}
+
+base_sec_out_bus SimConnectInterface::getClientDataSecBusOutput() {
+  return clientDataSecBusOutputs;
+}
 
 base_fac_discrete_outputs SimConnectInterface::getClientDataFacDiscretesOutput() {
   return clientDataFacDiscreteOutputs;
@@ -1459,8 +1448,11 @@ void SimConnectInterface::simConnectProcessDispatchMessage(SIMCONNECT_RECV* pDat
       break;
 
     case SIMCONNECT_RECV_ID_EVENT:
-      // get event
       simConnectProcessEvent(static_cast<SIMCONNECT_RECV_EVENT*>(pData));
+      break;
+
+    case SIMCONNECT_RECV_ID_EVENT_EX1:
+      simConnectProcessEvent_EX1(static_cast<SIMCONNECT_RECV_EVENT_EX1*>(pData));
       break;
 
     case SIMCONNECT_RECV_ID_SIMOBJECT_DATA:
@@ -1487,13 +1479,25 @@ void SimConnectInterface::simConnectProcessDispatchMessage(SIMCONNECT_RECV* pDat
 }
 
 void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* event) {
+  const DWORD eventId = event->uEventID;
+  const DWORD data0 = event->dwData;
+  processEventWithOneParam(eventId, data0);
+}
+
+void SimConnectInterface::simConnectProcessEvent_EX1(const SIMCONNECT_RECV_EVENT_EX1* event) {
+  const DWORD eventId = event->uEventID;
+  const DWORD data0 = event->dwData0;
+  processEventWithOneParam(eventId, data0);
+}
+
+void SimConnectInterface::processEventWithOneParam(const DWORD eventId, const DWORD data0) {
   // process depending on event id
-  switch (event->uEventID) {
+  switch (eventId) {
     case Events::AXIS_ELEVATOR_SET: {
-      simInput.inputs[AXIS_ELEVATOR_SET] = static_cast<long>(event->dwData) / 16384.0;
+      simInput.inputs[AXIS_ELEVATOR_SET] = static_cast<long>(data0) / 16384.0;
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: AXIS_ELEVATOR_SET: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << " -> ";
         std::cout << simInput.inputs[AXIS_ELEVATOR_SET];
         std::cout << std::endl;
@@ -1502,10 +1506,10 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::AXIS_AILERONS_SET: {
-      simInput.inputs[AXIS_AILERONS_SET] = static_cast<long>(event->dwData) / 16384.0;
+      simInput.inputs[AXIS_AILERONS_SET] = static_cast<long>(data0) / 16384.0;
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: AXIS_AILERONS_SET: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << " -> ";
         std::cout << simInput.inputs[AXIS_AILERONS_SET];
         std::cout << std::endl;
@@ -1514,10 +1518,10 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::AXIS_RUDDER_SET: {
-      simInput.inputs[AXIS_RUDDER_SET] = static_cast<long>(event->dwData) / 16384.0;
+      simInput.inputs[AXIS_RUDDER_SET] = static_cast<long>(data0) / 16384.0;
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: AXIS_RUDDER_SET: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << " -> ";
         std::cout << simInput.inputs[AXIS_RUDDER_SET];
         std::cout << std::endl;
@@ -1526,10 +1530,10 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::RUDDER_SET: {
-      simInput.inputs[AXIS_RUDDER_SET] = static_cast<long>(event->dwData) / 16384.0;
+      simInput.inputs[AXIS_RUDDER_SET] = static_cast<long>(data0) / 16384.0;
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: RUDDER_SET: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << " -> ";
         std::cout << simInput.inputs[AXIS_RUDDER_SET];
         std::cout << std::endl;
@@ -1577,10 +1581,10 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
       double tmpValue = 0;
       if (this->disableXboxCompatibilityRudderPlusMinus) {
         // normal axis
-        tmpValue = +1.0 * ((static_cast<long>(event->dwData) + 16384.0) / 32768.0);
+        tmpValue = +1.0 * ((static_cast<long>(data0) + 16384.0) / 32768.0);
       } else {
         // xbox controller
-        tmpValue = +1.0 * (static_cast<long>(event->dwData) / 16384.0);
+        tmpValue = +1.0 * (static_cast<long>(data0) / 16384.0);
       }
 
       // This allows using two independent axis for rudder which are mapped to RUDDER AXIS LEFT and RUDDER AXIS RIGHT
@@ -1593,7 +1597,7 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
       simInput.inputs[AXIS_RUDDER_SET] = tmpValue;
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: RUDDER_AXIS_MINUS: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << " -> ";
         std::cout << simInput.inputs[AXIS_RUDDER_SET];
         if (this->enableRudder2AxisMode) {
@@ -1608,10 +1612,10 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
       double tmpValue = 0;
       if (this->disableXboxCompatibilityRudderPlusMinus) {
         // normal axis
-        tmpValue = -1.0 * ((static_cast<long>(event->dwData) + 16384.0) / 32768.0);
+        tmpValue = -1.0 * ((static_cast<long>(data0) + 16384.0) / 32768.0);
       } else {
         // xbox controller
-        tmpValue = -1.0 * (static_cast<long>(event->dwData) / 16384.0);
+        tmpValue = -1.0 * (static_cast<long>(data0) / 16384.0);
       }
 
       // This allows using two independent axis for rudder which are mapped to RUDDER AXIS LEFT and RUDDER AXIS RIGHT
@@ -1624,7 +1628,7 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
       simInput.inputs[AXIS_RUDDER_SET] = tmpValue;
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: RUDDER_AXIS_PLUS: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << " -> ";
         std::cout << simInput.inputs[AXIS_RUDDER_SET];
         if (this->enableRudder2AxisMode) {
@@ -1668,7 +1672,7 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     case Events::RUDDER_TRIM_SET: {
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: RUDDER_TRIM_SET: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << std::endl;
       }
       break;
@@ -1677,17 +1681,17 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     case Events::RUDDER_TRIM_SET_EX1: {
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: RUDDER_TRIM_SET_EX1: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << std::endl;
       }
       break;
     }
 
     case Events::AILERON_SET: {
-      simInput.inputs[AXIS_AILERONS_SET] = static_cast<long>(event->dwData) / 16384.0;
+      simInput.inputs[AXIS_AILERONS_SET] = static_cast<long>(data0) / 16384.0;
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: AILERON_SET: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << " -> ";
         std::cout << simInput.inputs[AXIS_AILERONS_SET];
         std::cout << std::endl;
@@ -1735,10 +1739,10 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::ELEVATOR_SET: {
-      simInput.inputs[AXIS_ELEVATOR_SET] = static_cast<long>(event->dwData) / 16384.0;
+      simInput.inputs[AXIS_ELEVATOR_SET] = static_cast<long>(data0) / 16384.0;
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: ELEVATOR_SET: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << " -> ";
         std::cout << simInput.inputs[AXIS_ELEVATOR_SET];
         std::cout << std::endl;
@@ -1770,6 +1774,46 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
       break;
     }
 
+    case Events::ELEV_TRIM_DN: {
+      simInputPitchTrim.pitchTrimSwitchDown = true;
+      if (loggingFlightControlsEnabled) {
+        std::cout << "WASM: ELEV_TRIM_DN: ";
+        std::cout << "(no data)";
+        std::cout << std::endl;
+      }
+      break;
+    }
+
+    case Events::ELEV_TRIM_UP: {
+      simInputPitchTrim.pitchTrimSwitchUp = true;
+      if (loggingFlightControlsEnabled) {
+        std::cout << "WASM: ELEV_TRIM_UP: ";
+        std::cout << "(no data)";
+        std::cout << std::endl;
+      }
+      break;
+    }
+
+    case Events::ELEVATOR_TRIM_SET: {
+      if (loggingFlightControlsEnabled) {
+        std::cout << "WASM: ELEVATOR_TRIM_SET: ";
+        std::cout << static_cast<long>(data0);
+        std::cout << " (IGNORING)";
+        std::cout << std::endl;
+      }
+      break;
+    }
+
+    case Events::AXIS_ELEV_TRIM_SET: {
+      if (loggingFlightControlsEnabled) {
+        std::cout << "WASM: AXIS_ELEV_TRIM_SET: ";
+        std::cout << static_cast<long>(data0);
+        std::cout << " (IGNORING)";
+        std::cout << std::endl;
+      }
+      break;
+    }
+
     case Events::AUTOPILOT_OFF: {
       simInputAutopilot.AP_disconnect = 1;
       std::cout << "WASM: event triggered: AUTOPILOT_OFF" << std::endl;
@@ -1783,7 +1827,7 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::TOGGLE_FLIGHT_DIRECTOR: {
-      std::cout << "WASM: event triggered: TOGGLE_FLIGHT_DIRECTOR:" << static_cast<long>(event->dwData) << std::endl;
+      std::cout << "WASM: event triggered: TOGGLE_FLIGHT_DIRECTOR:" << static_cast<long>(data0) << std::endl;
       break;
     }
 
@@ -1794,7 +1838,7 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::AUTOPILOT_DISENGAGE_SET: {
-      if (static_cast<long>(event->dwData) == 1) {
+      if (static_cast<long>(data0) == 1) {
         simInputAutopilot.AP_disconnect = 1;
         std::cout << "WASM: event triggered: AUTOPILOT_DISENGAGE_SET" << std::endl;
       }
@@ -1850,9 +1894,9 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::A32NX_FCU_SPD_SET: {
-      idFcuEventSetSPEED->set(static_cast<long>(event->dwData));
+      idFcuEventSetSPEED->set(static_cast<long>(data0));
       execute_calculator_code("(>H:A320_Neo_FCU_SPEED_SET)", nullptr, nullptr, nullptr);
-      std::cout << "WASM: event triggered: A32NX_FCU_SPD_SET: " << static_cast<long>(event->dwData) << std::endl;
+      std::cout << "WASM: event triggered: A32NX_FCU_SPD_SET: " << static_cast<long>(data0) << std::endl;
       break;
     }
 
@@ -1894,9 +1938,9 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::A32NX_FCU_HDG_SET: {
-      idFcuEventSetHDG->set(static_cast<long>(event->dwData));
+      idFcuEventSetHDG->set(static_cast<long>(data0));
       execute_calculator_code("(>H:A320_Neo_FCU_HDG_SET)", nullptr, nullptr, nullptr);
-      std::cout << "WASM: event triggered: A32NX_FCU_HDG_SET: " << static_cast<long>(event->dwData) << std::endl;
+      std::cout << "WASM: event triggered: A32NX_FCU_HDG_SET: " << static_cast<long>(data0) << std::endl;
       break;
     }
 
@@ -1934,7 +1978,7 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::A32NX_FCU_ALT_INC: {
-      long increment = static_cast<long>(event->dwData);
+      long increment = static_cast<long>(data0);
       if (increment == 100) {
         execute_calculator_code(
             "3 (A:AUTOPILOT ALTITUDE LOCK VAR:3, feet) 100 + (A:AUTOPILOT ALTITUDE LOCK VAR:3, feet) "
@@ -1959,7 +2003,7 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::A32NX_FCU_ALT_DEC: {
-      long increment = static_cast<long>(event->dwData);
+      long increment = static_cast<long>(data0);
       if (increment == 100) {
         execute_calculator_code(
             "3 (A:AUTOPILOT ALTITUDE LOCK VAR:3, feet) 100 - 100 "
@@ -1985,7 +2029,7 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::A32NX_FCU_ALT_SET: {
-      long value = 100 * (static_cast<long>(event->dwData) / 100);
+      long value = 100 * (static_cast<long>(data0) / 100);
       std::ostringstream stringStream;
       stringStream << value;
       stringStream << " (>K:3:AP_ALT_VAR_SET_ENGLISH)";
@@ -2006,7 +2050,7 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::A32NX_FCU_ALT_INCREMENT_SET: {
-      long value = static_cast<long>(event->dwData);
+      long value = static_cast<long>(data0);
       if (value == 100 || value == 1000) {
         std::ostringstream stringStream;
         stringStream << value;
@@ -2052,9 +2096,9 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::A32NX_FCU_VS_SET: {
-      idFcuEventSetVS->set(static_cast<long>(event->dwData));
+      idFcuEventSetVS->set(static_cast<long>(data0));
       execute_calculator_code("(>H:A320_Neo_FCU_VS_SET) (>H:A320_Neo_CDU_VS)", nullptr, nullptr, nullptr);
-      std::cout << "WASM: event triggered: A32NX_FCU_VS_SET: " << static_cast<long>(event->dwData) << std::endl;
+      std::cout << "WASM: event triggered: A32NX_FCU_VS_SET: " << static_cast<long>(data0) << std::endl;
       break;
     }
 
@@ -2122,12 +2166,12 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
 
     case Events::AP_SPEED_SLOT_INDEX_SET: {
       // for the time being do not activate, it ends in a loop. more work has to be done to support this
-      // if (static_cast<long>(event->dwData) == 2) {
+      // if (static_cast<long>(data0) == 2) {
       //   execute_calculator_code("(>H:A320_Neo_FCU_SPEED_PUSH)", nullptr, nullptr, nullptr);
       // } else {
       //   execute_calculator_code("(>H:A320_Neo_FCU_SPEED_PULL)", nullptr, nullptr, nullptr);
       // }
-      std::cout << "WASM: event triggered: SPEED_SLOT_INDEX_SET: " << static_cast<long>(event->dwData) << std::endl;
+      std::cout << "WASM: event triggered: SPEED_SLOT_INDEX_SET: " << static_cast<long>(data0) << std::endl;
       break;
     }
 
@@ -2157,12 +2201,12 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
 
     case Events::AP_HEADING_SLOT_INDEX_SET: {
       // for the time being do not activate, it ends in a loop. more work has to be done to support this
-      // if (static_cast<long>(event->dwData) == 2) {
+      // if (static_cast<long>(data0) == 2) {
       //   execute_calculator_code("(>H:A320_Neo_FCU_VS_PUSH)", nullptr, nullptr, nullptr);
       // } else {
       //   execute_calculator_code("(>H:A320_Neo_FCU_VS_PULL)", nullptr, nullptr, nullptr);
       // }
-      std::cout << "WASM: event triggered: HEADING_SLOT_INDEX_SET: " << static_cast<long>(event->dwData) << std::endl;
+      std::cout << "WASM: event triggered: HEADING_SLOT_INDEX_SET: " << static_cast<long>(data0) << std::endl;
       break;
     }
 
@@ -2184,12 +2228,12 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
 
     case Events::AP_ALTITUDE_SLOT_INDEX_SET: {
       // for the time being do not activate, it ends in a loop. more work has to be done to support this
-      // if (static_cast<long>(event->dwData) == 2) {
+      // if (static_cast<long>(data0) == 2) {
       //   execute_calculator_code("(>H:A320_Neo_FCU_ALT_PUSH) (>H:A320_Neo_CDU_MODE_MANAGED_ALTITUDE)", nullptr, nullptr, nullptr);
       // } else {
       //   execute_calculator_code("(>H:A320_Neo_FCU_ALT_PULL) (>H:A320_Neo_CDU_MODE_SELECTED_ALTITUDE)", nullptr, nullptr, nullptr);
       // }
-      std::cout << "WASM: event triggered: ALTITUDE_SLOT_INDEX_SET: " << static_cast<long>(event->dwData) << std::endl;
+      std::cout << "WASM: event triggered: ALTITUDE_SLOT_INDEX_SET: " << static_cast<long>(data0) << std::endl;
       break;
     }
 
@@ -2215,12 +2259,12 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
 
     case Events::AP_VS_SLOT_INDEX_SET: {
       // for the time being do not activate, it ends in a loop. more work has to be done to support this
-      // if (static_cast<long>(event->dwData) == 2) {
+      // if (static_cast<long>(data0) == 2) {
       //   execute_calculator_code("(>H:A320_Neo_FCU_VS_PUSH)", nullptr, nullptr, nullptr);
       // } else {
       //   execute_calculator_code("(>H:A320_Neo_FCU_VS_PULL)", nullptr, nullptr, nullptr);
       // }
-      std::cout << "WASM: event triggered: VS_SLOT_INDEX_SET: " << static_cast<long>(event->dwData) << std::endl;
+      std::cout << "WASM: event triggered: VS_SLOT_INDEX_SET: " << static_cast<long>(data0) << std::endl;
       break;
     }
 
@@ -2306,87 +2350,87 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::THROTTLE_SET: {
-      throttleAxis[0]->onEventThrottleSet(static_cast<long>(event->dwData));
-      throttleAxis[1]->onEventThrottleSet(static_cast<long>(event->dwData));
-      throttleAxis[2]->onEventThrottleSet(static_cast<long>(event->dwData));
-      throttleAxis[3]->onEventThrottleSet(static_cast<long>(event->dwData));
+      throttleAxis[0]->onEventThrottleSet(static_cast<long>(data0));
+      throttleAxis[1]->onEventThrottleSet(static_cast<long>(data0));
+      throttleAxis[2]->onEventThrottleSet(static_cast<long>(data0));
+      throttleAxis[3]->onEventThrottleSet(static_cast<long>(data0));
       if (loggingThrottlesEnabled) {
-        std::cout << "WASM: THROTTLE_SET: " << static_cast<long>(event->dwData) << std::endl;
+        std::cout << "WASM: THROTTLE_SET: " << static_cast<long>(data0) << std::endl;
       }
       break;
     }
 
     case Events::THROTTLE1_SET: {
-      throttleAxis[0]->onEventThrottleSet(static_cast<long>(event->dwData));
+      throttleAxis[0]->onEventThrottleSet(static_cast<long>(data0));
       if (loggingThrottlesEnabled) {
-        std::cout << "WASM: THROTTLE1_SET: " << static_cast<long>(event->dwData) << std::endl;
+        std::cout << "WASM: THROTTLE1_SET: " << static_cast<long>(data0) << std::endl;
       }
       break;
     }
 
     case Events::THROTTLE2_SET: {
-      throttleAxis[1]->onEventThrottleSet(static_cast<long>(event->dwData));
+      throttleAxis[1]->onEventThrottleSet(static_cast<long>(data0));
       if (loggingThrottlesEnabled) {
-        std::cout << "WASM: THROTTLE2_SET: " << static_cast<long>(event->dwData) << std::endl;
+        std::cout << "WASM: THROTTLE2_SET: " << static_cast<long>(data0) << std::endl;
       }
       break;
     }
 
     case Events::THROTTLE3_SET: {
-      throttleAxis[2]->onEventThrottleSet(static_cast<long>(event->dwData));
+      throttleAxis[2]->onEventThrottleSet(static_cast<long>(data0));
       if (loggingThrottlesEnabled) {
-        std::cout << "WASM: THROTTLE3_SET: " << static_cast<long>(event->dwData) << std::endl;
+        std::cout << "WASM: THROTTLE3_SET: " << static_cast<long>(data0) << std::endl;
       }
       break;
     }
 
     case Events::THROTTLE4_SET: {
-      throttleAxis[3]->onEventThrottleSet(static_cast<long>(event->dwData));
+      throttleAxis[3]->onEventThrottleSet(static_cast<long>(data0));
       if (loggingThrottlesEnabled) {
-        std::cout << "WASM: THROTTLE4_SET: " << static_cast<long>(event->dwData) << std::endl;
+        std::cout << "WASM: THROTTLE4_SET: " << static_cast<long>(data0) << std::endl;
       }
       break;
     }
 
     case Events::THROTTLE_AXIS_SET_EX1: {
-      throttleAxis[0]->onEventThrottleSet(static_cast<long>(event->dwData));
-      throttleAxis[1]->onEventThrottleSet(static_cast<long>(event->dwData));
-      throttleAxis[2]->onEventThrottleSet(static_cast<long>(event->dwData));
-      throttleAxis[3]->onEventThrottleSet(static_cast<long>(event->dwData));
+      throttleAxis[0]->onEventThrottleSet(static_cast<long>(data0));
+      throttleAxis[1]->onEventThrottleSet(static_cast<long>(data0));
+      throttleAxis[2]->onEventThrottleSet(static_cast<long>(data0));
+      throttleAxis[3]->onEventThrottleSet(static_cast<long>(data0));
       if (loggingThrottlesEnabled) {
-        std::cout << "WASM: THROTTLE_AXIS_SET_EX1: " << static_cast<long>(event->dwData) << std::endl;
+        std::cout << "WASM: THROTTLE_AXIS_SET_EX1: " << static_cast<long>(data0) << std::endl;
       }
       break;
     }
 
     case Events::THROTTLE1_AXIS_SET_EX1: {
-      throttleAxis[0]->onEventThrottleSet(static_cast<long>(event->dwData));
+      throttleAxis[0]->onEventThrottleSet(static_cast<long>(data0));
       if (loggingThrottlesEnabled) {
-        std::cout << "WASM: THROTTLE1_AXIS_SET_EX1: " << static_cast<long>(event->dwData) << std::endl;
+        std::cout << "WASM: THROTTLE1_AXIS_SET_EX1: " << static_cast<long>(data0) << std::endl;
       }
       break;
     }
 
     case Events::THROTTLE2_AXIS_SET_EX1: {
-      throttleAxis[1]->onEventThrottleSet(static_cast<long>(event->dwData));
+      throttleAxis[1]->onEventThrottleSet(static_cast<long>(data0));
       if (loggingThrottlesEnabled) {
-        std::cout << "WASM: THROTTLE2_AXIS_SET_EX1: " << static_cast<long>(event->dwData) << std::endl;
+        std::cout << "WASM: THROTTLE2_AXIS_SET_EX1: " << static_cast<long>(data0) << std::endl;
       }
       break;
     }
 
     case Events::THROTTLE3_AXIS_SET_EX1: {
-      throttleAxis[2]->onEventThrottleSet(static_cast<long>(event->dwData));
+      throttleAxis[2]->onEventThrottleSet(static_cast<long>(data0));
       if (loggingThrottlesEnabled) {
-        std::cout << "WASM: THROTTLE3_AXIS_SET_EX1: " << static_cast<long>(event->dwData) << std::endl;
+        std::cout << "WASM: THROTTLE3_AXIS_SET_EX1: " << static_cast<long>(data0) << std::endl;
       }
       break;
     }
 
     case Events::THROTTLE4_AXIS_SET_EX1: {
-      throttleAxis[3]->onEventThrottleSet(static_cast<long>(event->dwData));
+      throttleAxis[3]->onEventThrottleSet(static_cast<long>(data0));
       if (loggingThrottlesEnabled) {
-        std::cout << "WASM: THROTTLE4_AXIS_SET_EX1: " << static_cast<long>(event->dwData) << std::endl;
+        std::cout << "WASM: THROTTLE4_AXIS_SET_EX1: " << static_cast<long>(data0) << std::endl;
       }
       break;
     }
@@ -2641,12 +2685,12 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
       break;
     }
     case Events::THROTTLE_REVERSE_THRUST_HOLD: {
-      throttleAxis[0]->onEventReverseHold(static_cast<bool>(event->dwData));
-      throttleAxis[1]->onEventReverseHold(static_cast<bool>(event->dwData));
-      throttleAxis[2]->onEventReverseHold(static_cast<bool>(event->dwData));
-      throttleAxis[3]->onEventReverseHold(static_cast<bool>(event->dwData));
+      throttleAxis[0]->onEventReverseHold(static_cast<bool>(data0));
+      throttleAxis[1]->onEventReverseHold(static_cast<bool>(data0));
+      throttleAxis[2]->onEventReverseHold(static_cast<bool>(data0));
+      throttleAxis[3]->onEventReverseHold(static_cast<bool>(data0));
       if (loggingThrottlesEnabled) {
-        std::cout << "WASM: THROTTLE_REVERSE_THRUST_HOLD: " << static_cast<long>(event->dwData) << std::endl;
+        std::cout << "WASM: THROTTLE_REVERSE_THRUST_HOLD: " << static_cast<long>(data0) << std::endl;
       }
       break;
     }
@@ -2694,10 +2738,10 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::SPOILERS_SET: {
-      spoilersHandler->onEventSpoilersSet(static_cast<long>(event->dwData));
+      spoilersHandler->onEventSpoilersSet(static_cast<long>(data0));
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: SPOILERS_SET: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << " -> ";
         std::cout << spoilersHandler->getHandlePosition();
         std::cout << " / ";
@@ -2708,10 +2752,10 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::AXIS_SPOILER_SET: {
-      spoilersHandler->onEventSpoilersAxisSet(static_cast<long>(event->dwData));
+      spoilersHandler->onEventSpoilersAxisSet(static_cast<long>(data0));
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: AXIS_SPOILER_SET: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << " -> ";
         std::cout << spoilersHandler->getHandlePosition();
         std::cout << " / ";
@@ -2764,10 +2808,10 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::SPOILERS_ARM_SET: {
-      spoilersHandler->onEventSpoilersArmSet(static_cast<long>(event->dwData) == 1);
+      spoilersHandler->onEventSpoilersArmSet(static_cast<long>(data0) == 1);
       if (loggingFlightControlsEnabled) {
         std::cout << "WASM: SPOILERS_ARM_SET: ";
-        std::cout << static_cast<long>(event->dwData);
+        std::cout << static_cast<long>(data0);
         std::cout << " -> ";
         std::cout << spoilersHandler->getHandlePosition();
         std::cout << " / ";
@@ -2810,7 +2854,7 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV_EVENT* ev
     }
 
     case Events::SIM_RATE_SET: {
-      long targetSimulationRate = min(maxSimulationRate, max(1, static_cast<long>(event->dwData)));
+      long targetSimulationRate = min(maxSimulationRate, max(1, static_cast<long>(data0)));
       sendEvent(Events::SIM_RATE_SET, targetSimulationRate, SIMCONNECT_GROUP_PRIORITY_DEFAULT);
       std::cout << "WASM: Simulation Rate set to " << targetSimulationRate << std::endl;
       break;
@@ -2880,25 +2924,30 @@ void SimConnectInterface::simConnectProcessClientData(const SIMCONNECT_RECV_CLIE
       clientDataPrimBusOutputs = *((base_prim_out_bus*)&data->dwData);
       return;
 
-      //     case ClientData::SEC_DISCRETE_OUTPUTS:
-      //       // store aircraft data
-      //       clientDataSecDiscreteOutputs = *((base_sec_discrete_outputs*)&data->dwData);
-      //       return;
-      //
-      //     case ClientData::SEC_ANALOG_OUTPUTS:
-      //       // store aircraft data
-      //       clientDataSecAnalogOutputs = *((base_sec_analog_outputs*)&data->dwData);
-      //       return;
-      //
-      //     case ClientData::SEC_1_BUS_OUTPUT:
-      //       // store aircraft data
-      //       clientDataSecBusOutputs = *((base_sec_out_bus*)&data->dwData);
-      //       return;
-      //
-      //    case ClientData::SEC_2_BUS_OUTPUT:
-      //      // store aircraft data
-      //      clientDataSecBusOutputs = *((base_sec_out_bus*)&data->dwData);
-      //      return;
+    case ClientData::SEC_DISCRETE_OUTPUTS:
+      // store aircraft data
+      clientDataSecDiscreteOutputs = *((base_sec_discrete_outputs*)&data->dwData);
+      return;
+
+    case ClientData::SEC_ANALOG_OUTPUTS:
+      // store aircraft data
+      clientDataSecAnalogOutputs = *((base_sec_analog_outputs*)&data->dwData);
+      return;
+
+    case ClientData::SEC_1_BUS_OUTPUT:
+      // store aircraft data
+      clientDataSecBusOutputs = *((base_sec_out_bus*)&data->dwData);
+      return;
+
+    case ClientData::SEC_2_BUS_OUTPUT:
+      // store aircraft data
+      clientDataSecBusOutputs = *((base_sec_out_bus*)&data->dwData);
+      return;
+
+    case ClientData::SEC_3_BUS_OUTPUT:
+      // store aircraft data
+      clientDataSecBusOutputs = *((base_sec_out_bus*)&data->dwData);
+      return;
 
     case ClientData::FAC_DISCRETE_OUTPUTS:
       // store aircraft data

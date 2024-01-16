@@ -1,4 +1,8 @@
-import { MathUtils } from '@shared/MathUtils';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
+import { MathUtils } from '@flybywiresim/fbw-sdk';
 import { Common, FlapConf } from './common';
 
 export class FlightModel {
@@ -283,5 +287,12 @@ export class FlightModel {
         const timeToAccel = (targetSpeed - initialSpeed) / accel;
         const distanceToAccel = (initialSpeed * timeToAccel) + (0.5 * accel * (timeToAccel ** 2)); // TODO: Check units
         return distanceToAccel;
+    }
+
+    static getGreenDotSpeedCas(
+        altitude: number,
+        weight: Kilograms,
+    ): Knots {
+        return weight / 500 + 85 + Math.max(0, (altitude - 20000) / 1000);
     }
 }

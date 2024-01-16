@@ -1,15 +1,14 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 /* eslint-disable camelcase */
 /* eslint-disable no-empty-function */
 /* eslint-disable no-useless-constructor */
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable no-console */
-import { UpdateThrottler } from '@shared/UpdateThrottler';
-import { MathUtils } from '@shared/MathUtils';
-import { Arinc429Word } from '@shared/arinc429';
-import { LatLongData } from '@typings/fs-base-ui/html_ui/JS/Types';
-import { LocalSimVar } from '@shared/simvar';
-import { NXDataStore } from '@shared/persistence';
-import { FlowEventSync } from '@shared/FlowEventSync';
+import { MathUtils, Arinc429Word, GenericDataListenerSync, NXDataStore, UpdateThrottler, LocalSimVar } from '@flybywiresim/fbw-sdk';
+import { Coordinates } from 'msfs-geo';
 import { TcasComponent } from '../lib/TcasComponent';
 import {
     TCAS_CONST as TCAS, JS_NPCPlane,
@@ -114,7 +113,7 @@ export class TcasTraffic {
 
     secondsSinceLastTa: number;
 
-    constructor(tf: JS_NPCPlane, ppos: LatLongData, alt: number) {
+    constructor(tf: JS_NPCPlane, ppos: Coordinates, alt: number) {
         this.alive = true;
         this.seen = 0;
         this.ID = tf.uId.toFixed(0); // 7 Digit = NPC; 20 digit = player
@@ -159,7 +158,7 @@ export class TcasComputer implements TcasComponent {
 
     private debug: boolean; // TCAS_DEBUG on/off
 
-    private syncer: FlowEventSync = new FlowEventSync();
+    private syncer: GenericDataListenerSync = new GenericDataListenerSync();
 
     private updateThrottler: UpdateThrottler; // Utility to restrict updates
 
@@ -197,9 +196,9 @@ export class TcasComputer implements TcasComponent {
 
     private ppos: LatLongData; // Plane PPOS
 
-    private altitude: Arinc429Word | null; // ADR1/2 Altitude
+    private baroCorrectedAltitude1: Arinc429Word | null; // ADR1/2 Altitude
 
-    private altitudeStandby: Arinc429Word | null; // ADR3 Altitude
+    private adr3BaroCorrectedAltitude1: Arinc429Word | null; // ADR3 Altitude
 
     private pressureAlt: number | null; // Pressure Altitude
 
@@ -285,8 +284,8 @@ export class TcasComputer implements TcasComponent {
         ) && !(
             !radioAlt1.isNoComputedData() && radioAlt2.isFailureWarning()
         ) ? radioAlt2 : radioAlt1;
-        this.altitude = Arinc429Word.fromSimVarValue(`L:A32NX_ADIRS_ADR_${this.activeXpdr + 1}_ALTITUDE`);
-        this.altitudeStandby = Arinc429Word.fromSimVarValue('L:A32NX_ADIRS_ADR_3_ALTITUDE');
+        this.baroCorrectedAltitude1 = Arinc429Word.fromSimVarValue(`L:A32NX_ADIRS_ADR_${this.activeXpdr + 1}_BARO_CORRECTED_ALTITUDE_1`);
+        this.adr3BaroCorrectedAltitude1 = Arinc429Word.fromSimVarValue('L:A32NX_ADIRS_ADR_3_BARO_CORRECTED_ALTITUDE_1');
         this.trueHeading = SimVar.GetSimVarValue('PLANE HEADING DEGREES TRUE', 'degrees');
         this.isSlewActive = !!SimVar.GetSimVarValue('IS SLEW ACTIVE', 'boolean');
         this.simRate = SimVar.GetGlobalVarValue('SIMULATION RATE', 'number');
@@ -354,10 +353,10 @@ export class TcasComputer implements TcasComponent {
         }
 
         // Amber TCAS warning on fault (and on PFD) - 34-43-00:A24/34-43-010
-        if (!this.altitude || !this.altitudeStandby
-                || !this.altitude.isNormalOperation() || !this.altitudeStandby.isNormalOperation()
+        if (!this.baroCorrectedAltitude1 || !this.adr3BaroCorrectedAltitude1
+                || !this.baroCorrectedAltitude1.isNormalOperation() || !this.adr3BaroCorrectedAltitude1.isNormalOperation()
                 || this.radioAlt.isFailureWarning()
-                || this.altitude.value - this.altitudeStandby.value > 300 || !this.tcasPower) {
+                || this.baroCorrectedAltitude1.value - this.adr3BaroCorrectedAltitude1.value > 300 || !this.tcasPower) {
             this.tcasFault.setVar(true);
         } else {
             this.tcasFault.setVar(false);

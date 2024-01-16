@@ -37,7 +37,10 @@
 # Project folders
 
 /fbw-a32nx/*
+/fbw-a32nx/.env.local
 !/fbw-a32nx/README.md
+!/fbw-a32nx/mach.config.js
+!/fbw-a32nx/.env
 !/fbw-a32nx/docs/
 !/fbw-a32nx/docs/**
 !/fbw-a32nx/src/
@@ -47,13 +50,21 @@
 /fbw-a32nx/src/base/flybywire-aircraft-a320-neo/SimObjects/AirPlanes/FlyByWire_A320_NEO/model/*.bin
 /fbw-a32nx/src/base/flybywire-aircraft-a320-neo/SimObjects/AirPlanes/FlyByWire_A320_NEO/model/*.gltf
 /fbw-a32nx/src/systems/instruments/aceBundles
+/fbw-a32nx/src/systems/instruments/buildSrc/custom/*
 
-/fbw-a32nx/src/systems/instruments/src/EFB/Localization/downloaded/*.json
+/fbw-a32nx/src/localization/flypad/downloaded/*.json
+/fbw-a32nx/src/localization/msfs/downloaded/*.locPak
 /fbw-a32nx/src/systems/instruments/src/EFB/dist
 /fbw-a32nx/src/systems/instruments/src/EFB/web/
 
+/fbw-a32nx/src/wasm/systems/a320_hydraulic_simulation_graphs/*.png
+/fbw-a32nx/src/wasm/systems/a320_pneumatic_simulation_graph_data/*.txt
+
 /fbw-a380x/*
+/fbw-a380x/.env.local
 !/fbw-a380x/README.md
+!/fbw-a380x/mach.config.js
+!/fbw-a380x/.env
 !/fbw-a380x/docs/
 !/fbw-a380x/docs/**
 !/fbw-a380x/src/**
@@ -62,10 +73,18 @@
 /fbw-a380x/src/systems/instruments/aceBundles
 
 !/fbw-common/**
-/fbw-common/msfs-avionics-mirror/src/sdk/build
-/fbw-common/msfs-avionics-mirror/src/sdk/build/**
+
+/fbw-ingamepanels-checklist-fix/*
+!/fbw-ingamepanels-checklist-fix/README.md
+!/fbw-ingamepanels-checklist-fix/docs/
+!/fbw-ingamepanels-checklist-fix/docs/**
+!/fbw-ingamepanels-checklist-fix/src/
+!/fbw-ingamepanels-checklist-fix/src/**
+/fbw-ingamepanels-checklist-fix/out
 
 !/scripts/**
+
+!/build-utils.js
 
 !/tools/**
 /tools/fdr2csv/*.exe
@@ -74,6 +93,8 @@
 
 # avoid issues when switching branches during transistion from old to new structure
 /src/
+/fbw-common/msfs-avionics-mirror/src/sdk/build
+/fbw-common/msfs-avionics-mirror/src/sdk/build/**
 /msfs-avionics-mirror/
 /flybywire-aircraft-a320-neo/
 /flybywire-aircraft-a320-neo-lock-highlight/
@@ -81,44 +102,11 @@
 # explicit exclusions
 /.env
 node_modules/
-obj/
 target/
+obj/
+cmake-build*/
 *.tgz
 *.wasm
+cmake-build*
 
-# ======== OLD =============
-
-#!/.husky/**
-#!CODEOWNERS
-#/src/mcdu-server/client/build
-#/src/presets/obj/
-#/src/systems/a320_hydraulic_simulation_graphs/*.png
-#/src/systems/a320_pneumatic_simulation_graph_data/*.txt
-#/src/systems/target/
-#!/flybywire-aircraft-a320-neo/CORS SERVER/*
-#/src/fadec/obj/
-#/src/fbw_a320/obj/
-#/src/fbw_a380/obj/
-#/src/sound/.cache
-#/src/instruments/buildSrc/custom/*
-#src/instruments/buildSrc/custom/*
-#/src/autothrottle/target
-#/flybywire-aircraft-a320-neo/layout.json
-#/flybywire-aircraft-a320-neo/manifest.json
-#/flybywire-aircraft-a320-neo/a32nx_build_info.json
-#/flybywire-aircraft-a320-neo/html_ui/JS/atsu/
-#/flybywire-aircraft-a320-neo/html_ui/JS/fmgc/
-#/flybywire-aircraft-a320-neo/html_ui/JS/sentry-client/
-#/flybywire-aircraft-a320-neo/html_ui/JS/simbridge-client/
-#/flybywire-aircraft-a320-neo/html_ui/JS/tcas/
-#/flybywire-aircraft-a320-neo/html_ui/Pages/VCockpit/Instruments/A32NX/*
-#!/flybywire-aircraft-a320-neo/html_ui/Pages/VCockpit/Instruments/A32NX/PFD
-#/flybywire-aircraft-a320-neo/html_ui/Pages/VCockpit/Instruments/A32NX/PFD/*.js
-#/flybywire-aircraft-a320-neo/html_ui/Pages/VCockpit/Instruments/A32NX/PFD/*.css
-#/flybywire-aircraft-a320-neo/html_ui/Pages/VCockpit/Instruments/A32NX/PFD/*.html
-#/flybywire-aircraft-a320-neo/html_ui/JS/generated/**
-#/flybywire-aircraft-a320-neo/ModelBehaviorDefs/A32NX/generated
-#!/docs/**
-#!/src/**
-#!/scripts/**
-#!/typings/**
+localazy.keys.json

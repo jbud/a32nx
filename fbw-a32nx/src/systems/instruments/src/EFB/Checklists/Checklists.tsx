@@ -1,6 +1,10 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 /* eslint-disable max-len */
 import React, { useEffect } from 'react';
-import { usePersistentNumberProperty } from '@instruments/common/persistence';
+import { usePersistentNumberProperty } from '@flybywiresim/fbw-sdk';
 import { Link45deg } from 'react-bootstrap-icons';
 import { t } from '../translation';
 import { ChecklistPage } from './ChecklistsPage';
@@ -159,6 +163,7 @@ export const Checklists = () => {
                     <ScrollableContainer innerClassName="space-y-4" height={46}>
                         {CHECKLISTS.map((cl, index) => (
                             <div
+                                key={cl.name}
                                 className={`flex justify-center items-center w-full h-12 rounded-md transition duration-100 ${getTabClassName(index)}`}
                                 onClick={() => handleClick(index)}
                             >

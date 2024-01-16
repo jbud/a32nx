@@ -1,3 +1,7 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 import React, { FC } from 'react';
 
 import { Route, Switch } from 'react-router';
@@ -14,6 +18,7 @@ import { RealismPage } from './Pages/RealismPage';
 import { AtsuAocPage } from './Pages/AtsuAocPage';
 import { AudioPage } from './Pages/AudioPage';
 import { FlyPadPage } from './Pages/FlyPadPage';
+import { ThirdPartyOptionsPage } from './Pages/ThirdPartyOptionsPage';
 
 export type ButtonType = {
     name: string,
@@ -29,6 +34,7 @@ export const SelectionTabs = ({ tabs }: SelectionTabsProps) => (
         {
             tabs.map((tab) => (
                 <Link
+                    key={tab.name}
                     to={`settings/${pathify(tab.name)}`}
                     className="flex justify-between items-center p-6 rounded-md border-2 border-transparent transition duration-100 bg-theme-accent hover:border-theme-highlight"
                 >
@@ -45,6 +51,7 @@ export const Settings = () => {
         { alias: t('Settings.AircraftOptionsPinPrograms.Title'), name: 'Aircraft Options / Pin Programs', component: <AircraftOptionsPinProgramsPage /> },
         { alias: t('Settings.SimOptions.Title'), name: 'Sim Options', component: <SimOptionsPage /> },
         { alias: t('Settings.Realism.Title'), name: 'Realism', component: <RealismPage /> },
+        { alias: t('Settings.ThirdPartyOptions.Title'), name: '3rd Party Options', component: <ThirdPartyOptionsPage /> },
         { alias: t('Settings.AtsuAoc.Title'), name: 'ATSU / AOC', component: <AtsuAocPage /> },
         { alias: t('Settings.Audio.Title'), name: 'Audio', component: <AudioPage /> },
         { alias: t('Settings.flyPad.Title'), name: 'flyPad', component: <FlyPadPage /> },
@@ -66,11 +73,12 @@ export const Settings = () => {
 
 type SettingsPageProps = {
     name: string,
+    backRoute?: string,
 }
 
-export const SettingsPage: FC<SettingsPageProps> = ({ name, children }) => (
+export const SettingsPage: FC<SettingsPageProps> = ({ name, backRoute, children }) => (
     <div>
-        <Link to="/settings" className="inline-block mb-4">
+        <Link to={backRoute ?? '/settings'} className="inline-block mb-4">
             <div className="flex flex-row items-center space-x-3 transition duration-100 hover:text-theme-highlight">
                 <ArrowLeft size={30} />
                 <h1 className="font-bold text-current">
@@ -81,11 +89,29 @@ export const SettingsPage: FC<SettingsPageProps> = ({ name, children }) => (
             </div>
         </Link>
         <div className="py-2 px-6 w-full rounded-lg border-2 h-content-section-reduced border-theme-accent">
-            <ScrollableContainer height={53}>
+            <ScrollableContainer height={54} innerClassName="h-full">
                 <div className="h-full divide-y-2 divide-theme-accent">
                     {children}
                 </div>
             </ScrollableContainer>
+        </div>
+    </div>
+);
+
+export const FullscreenSettingsPage: FC<SettingsPageProps> = ({ name, children }) => (
+    <div>
+        <Link to="/settings" className="inline-block mb-4">
+            <div className="flex flex-row items-center space-x-3 hover:text-theme-highlight transition duration-100">
+                <ArrowLeft size={30} />
+                <h1 className="font-bold text-current">
+                    {t('Settings.Title')}
+                    {' - '}
+                    {name}
+                </h1>
+            </div>
+        </Link>
+        <div className="py-2 px-6 w-full h-content-section-reduced rounded-lg border-2 border-theme-accent">
+            {children}
         </div>
     </div>
 );

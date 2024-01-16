@@ -7,6 +7,7 @@ declare global {
     type Latitude = number;
     type Longitude = number;
     type Feet = number;
+    type FlightLevel = number;
     type Knots = number;
     type FeetPerMinute = number;
     type Metres = number;
@@ -16,6 +17,7 @@ declare global {
     type DegreesMagnetic = number;
     type DegreesTrue = number;
     type Seconds = number;
+    type Minutes = number;
     type Percent = number;
     type Radians = number;
     type RotationsPerMinute = number;
@@ -24,10 +26,19 @@ declare global {
     type PercentOver100 = number;
     type Gallons = number;
     type Kilograms = number;
+    type Pounds = number;
     type Celsius = number;
     type InchesOfMercury = number;
     type Millibar = number;
     type PressurePerSquareInch = number;
+
+    namespace Facilities {
+        function getMagVar(lat: Degrees, long: Degrees): Degrees;
+    }
+
+    const process: {
+        env: Record<string, string | undefined>
+    }
 
     interface Window {
         /**
@@ -49,7 +60,6 @@ declare global {
     namespace Fmgc {
         const FlightPhaseManager: typeof FlightPhaseManager_
     }
-
 }
 
 export {};

@@ -15,6 +15,8 @@ const rnpDefaults: Record<FlightArea, number> = {
     [FlightArea.NonPrecisionApproach]: 0.5,
 };
 
+// FIXME RNP-related scratchpad messages
+
 export class RequiredPerformance {
     activeRnp: number | undefined;
 
@@ -45,6 +47,17 @@ export class RequiredPerformance {
             return;
         }
 
+        const plan = this.flightPlanManager.activeFlightPlan;
+        if (plan && plan.activeWaypoint) {
+            const legRnp = plan.activeWaypoint.additionalData.rnp;
+            if (legRnp !== undefined) {
+                if (legRnp !== this.activeRnp) {
+                    this.setActiveRnp(legRnp);
+                }
+                return;
+            }
+        }
+
         const area = this.flightPlanManager.activeArea;
         const rnp = rnpDefaults[area];
 
@@ -63,7 +76,7 @@ export class RequiredPerformance {
         const area = this.flightPlanManager.activeArea;
         const ldev = area !== FlightArea.Enroute
             && area !== FlightArea.Oceanic
-            && this.activeRnp <= (0.3 + Number.EPSILON);
+            && this.activeRnp < 0.305;
         if (ldev !== this.requestLDev) {
             this.requestLDev = ldev;
             SimVar.SetSimVarValue('L:A32NX_FMGC_L_LDEV_REQUEST', 'bool', this.requestLDev);

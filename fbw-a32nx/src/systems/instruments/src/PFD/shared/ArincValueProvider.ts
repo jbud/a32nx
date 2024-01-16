@@ -1,10 +1,15 @@
-import { EventBus, Publisher } from 'msfssdk';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
+import { ConsumerSubject, MathUtils, Publisher, Subscription } from '@microsoft/msfs-sdk';
+import { ArincEventBus, Arinc429Register, Arinc429Word, Arinc429WordData } from '@flybywiresim/fbw-sdk';
+
 import { getDisplayIndex } from 'instruments/src/PFD/PFD';
-import { Arinc429Word } from '@shared/arinc429';
 import { PFDSimvars } from './PFDSimvarPublisher';
 
 export interface Arinc429Values {
-    pitchAr: Arinc429Word;
+    pitchAr: Arinc429WordData;
     rollAr: Arinc429Word;
     altitudeAr: Arinc429Word;
     magTrack: Arinc429Word;
@@ -43,11 +48,17 @@ export interface Arinc429Values {
     irMaintWord: Arinc429Word;
     trueHeading: Arinc429Word;
     trueTrack: Arinc429Word;
+    fmEisDiscreteWord1Raw: number;
+    fmEisDiscreteWord2Raw: number;
+    fmMdaRaw: number;
+    fmDhRaw: number;
+    fmTransAltRaw: number;
+    fmTransLvlRaw: number;
 }
 export class ArincValueProvider {
     private roll = new Arinc429Word(0);
 
-    private pitch = new Arinc429Word(0);
+    private pitch = Arinc429Register.empty();
 
     private magTrack = new Arinc429Word(0);
 
@@ -99,8 +110,15 @@ export class ArincValueProvider {
 
     private facToUse = 0;
 
-    constructor(private readonly bus: EventBus) {
+    private readonly fm1Healthy = ConsumerSubject.create(null, 0);
 
+    private readonly fm2Healthy = ConsumerSubject.create(null, 0);
+
+    private readonly fm1Subs: Subscription[] = [];
+
+    private readonly fm2Subs: Subscription[] = [];
+
+    constructor(private readonly bus: ArincEventBus) {
     }
 
     public init() {
@@ -108,7 +126,7 @@ export class ArincValueProvider {
         const subscriber = this.bus.getSubscriber<PFDSimvars>();
 
         subscriber.on('pitch').handle((p) => {
-            this.pitch = new Arinc429Word(p);
+            this.pitch.set(p);
             publisher.pub('pitchAr', this.pitch);
         });
         subscriber.on('roll').handle((p) => {
@@ -129,7 +147,7 @@ export class ArincValueProvider {
             publisher.pub('speedAr', this.speed);
         });
 
-        subscriber.on('altitude').handle((a) => {
+        subscriber.on('baroCorrectedAltitude').handle((a) => {
             this.altitude = new Arinc429Word(a);
             publisher.pub('altitudeAr', this.altitude);
         });
@@ -187,38 +205,20 @@ export class ArincValueProvider {
             publisher.pub('da', this.da);
         });
 
-        subscriber.on('landingElevation1').handle((elevation) => {
+        subscriber.on('landingElevation1Raw').handle((elevation) => {
             if (getDisplayIndex() === 1) {
-                this.ownLandingElevation.value = elevation;
+                this.ownLandingElevation = new Arinc429Word(elevation);
             } else {
-                this.oppLandingElevation.value = elevation;
+                this.oppLandingElevation = new Arinc429Word(elevation);
             }
             this.determineAndPublishChosenLandingElevation(publisher);
         });
 
-        subscriber.on('landingElevation1Ssm').handle((ssm) => {
+        subscriber.on('landingElevation2Raw').handle((elevation) => {
             if (getDisplayIndex() === 1) {
-                this.ownLandingElevation.ssm = ssm as any;
+                this.ownLandingElevation = new Arinc429Word(elevation);
             } else {
-                this.oppLandingElevation.ssm = ssm as any;
-            }
-            this.determineAndPublishChosenLandingElevation(publisher);
-        });
-
-        subscriber.on('landingElevation1').handle((elevation) => {
-            if (getDisplayIndex() === 1) {
-                this.oppLandingElevation.value = elevation;
-            } else {
-                this.ownLandingElevation.value = elevation;
-            }
-            this.determineAndPublishChosenLandingElevation(publisher);
-        });
-
-        subscriber.on('landingElevation1Ssm').handle((ssm) => {
-            if (getDisplayIndex() === 1) {
-                this.oppLandingElevation.ssm = ssm as any;
-            } else {
-                this.ownLandingElevation.ssm = ssm as any;
+                this.oppLandingElevation = new Arinc429Word(elevation);
             }
             this.determineAndPublishChosenLandingElevation(publisher);
         });
@@ -497,6 +497,22 @@ export class ArincValueProvider {
         subscriber.on('trueTrackRaw').handle((word) => {
             publisher.pub('trueTrack', new Arinc429Word(word));
         });
+
+        this.fm1Subs.push(subscriber.on('fm1EisDiscrete2Raw').handle((raw) => publisher.pub('fmEisDiscreteWord2Raw', raw), true));
+        this.fm2Subs.push(subscriber.on('fm2EisDiscrete2Raw').handle((raw) => publisher.pub('fmEisDiscreteWord2Raw', raw), true));
+        this.fm1Subs.push(subscriber.on('fm1MdaRaw').handle((raw) => publisher.pub('fmMdaRaw', raw), true));
+        this.fm2Subs.push(subscriber.on('fm2MdaRaw').handle((raw) => publisher.pub('fmMdaRaw', raw), true));
+        this.fm1Subs.push(subscriber.on('fm1DhRaw').handle((raw) => publisher.pub('fmDhRaw', raw), true));
+        this.fm2Subs.push(subscriber.on('fm2DhRaw').handle((raw) => publisher.pub('fmDhRaw', raw), true));
+        this.fm1Subs.push(subscriber.on('fm1TransAltRaw').handle((raw) => publisher.pub('fmTransAltRaw', raw), true));
+        this.fm2Subs.push(subscriber.on('fm2TransAltRaw').handle((raw) => publisher.pub('fmTransAltRaw', raw), true));
+        this.fm1Subs.push(subscriber.on('fm1TransLvlRaw').handle((raw) => publisher.pub('fmTransLvlRaw', raw), true));
+        this.fm2Subs.push(subscriber.on('fm2TransLvlRaw').handle((raw) => publisher.pub('fmTransLvlRaw', raw), true));
+
+        this.fm1Healthy.setConsumer(subscriber.on('fm1HealthyDiscrete'));
+        this.fm2Healthy.setConsumer(subscriber.on('fm2HealthyDiscrete'));
+        this.fm1Healthy.sub(this.determineFmToUse.bind(this));
+        this.fm2Healthy.sub(this.determineFmToUse.bind(this), true);
     }
 
     private determineAndPublishChosenRadioAltitude(publisher: Publisher<Arinc429Values>) {
@@ -562,5 +578,20 @@ export class ArincValueProvider {
         }
 
         publisher.pub('facToUse', this.facToUse);
+    }
+
+    private determineFmToUse(): void {
+        const onSideIndex = MathUtils.clamp(getDisplayIndex(), 1, 2);
+
+        const onlyFm1Healthy = this.fm1Healthy.get() && !this.fm2Healthy.get();
+        const onlyFm2Healthy = this.fm2Healthy.get() && !this.fm1Healthy.get();
+
+        if ((onSideIndex === 1 && !onlyFm2Healthy) || onlyFm1Healthy) {
+            this.fm2Subs.forEach((sub) => sub.pause());
+            this.fm1Subs.forEach((sub) => sub.resume(true));
+        } else if ((onSideIndex === 2 && !onlyFm1Healthy) || onlyFm2Healthy) {
+            this.fm1Subs.forEach((sub) => sub.pause());
+            this.fm2Subs.forEach((sub) => sub.resume(true));
+        }
     }
 }

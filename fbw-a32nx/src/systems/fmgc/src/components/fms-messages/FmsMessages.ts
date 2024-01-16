@@ -2,9 +2,17 @@
 //
 // SPDX-License-Identifier: GPL-3.0
 
+import { FMMessage, FMMessageTriggers } from '@flybywiresim/fbw-sdk';
+
+import { RwyLsMismatchLeft, RwyLsMismatchRight } from '@fmgc/components/fms-messages/RwyLsMismatch';
+import { SpecifiedNdbUnavailableLeft, SpecifiedNdbUnavailableRight } from '@fmgc/components/fms-messages/SpecifiedNdbUnavailable';
+import { SpecifiedVorUnavailableLeft, SpecifiedVorUnavailableRight } from '@fmgc/components/fms-messages/SpecifiedVorUnavailable';
+import { TuneNavaidLeft, TuneNavaidRight } from '@fmgc/components/fms-messages/TuneNavaid';
 import { TurnAreaExceedanceLeft, TurnAreaExceedanceRight } from '@fmgc/components/fms-messages/TurnAreaExceedance';
 import { FlightPlanManager } from '@shared/flightplan';
-import { FMMessage, FMMessageTriggers } from '@shared/FmMessages';
+import { TdReached } from '@fmgc/components/fms-messages/TdReached';
+import { StepAhead } from '@fmgc/components/fms-messages/StepAhead';
+import { StepDeleted } from '@fmgc/components/fms-messages/StepDeleted';
 import { FmgcComponent } from '../FmgcComponent';
 import { GpsPrimary } from './GpsPrimary';
 import { GpsPrimaryLost } from './GpsPrimaryLost';
@@ -39,6 +47,17 @@ export class FmsMessages implements FmgcComponent {
         new MapPartlyDisplayedRight(),
         new TurnAreaExceedanceLeft(),
         new TurnAreaExceedanceRight(),
+        new TuneNavaidLeft(),
+        new TuneNavaidRight(),
+        new SpecifiedVorUnavailableLeft(),
+        new SpecifiedVorUnavailableRight(),
+        new SpecifiedNdbUnavailableLeft(),
+        new SpecifiedNdbUnavailableRight(),
+        new RwyLsMismatchLeft(),
+        new RwyLsMismatchRight(),
+        new TdReached(),
+        new StepAhead(),
+        new StepDeleted(),
     ];
 
     init(baseInstrument: BaseInstrument, _flightPlanManager: FlightPlanManager): void {

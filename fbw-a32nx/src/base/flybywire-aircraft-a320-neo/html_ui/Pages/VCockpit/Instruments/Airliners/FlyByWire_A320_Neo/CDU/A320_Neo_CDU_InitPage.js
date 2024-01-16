@@ -191,9 +191,6 @@ class CDUInitPage {
             if (value !== "") {
                 mcdu.tryUpdateFromTo(value, (result) => {
                     if (result) {
-                        CDUPerformancePage.UpdateThrRedAccFromOrigin(mcdu);
-                        CDUPerformancePage.UpdateEngOutAccFromOrigin(mcdu);
-                        CDUPerformancePage.UpdateThrRedAccFromDestination(mcdu);
                         CDUAvailableFlightPlanPage.ShowPage(mcdu);
                     } else {
                         scratchpadCallback();
@@ -335,10 +332,9 @@ class CDUInitPage {
         return isFinite(mcdu.blockFuel) &&
             isFinite(mcdu.zeroFuelWeightMassCenter) &&
             isFinite(mcdu.zeroFuelWeight) &&
-            mcdu.cruiseFlightLevel &&
             mcdu.flightPlanManager.getWaypointsCount() > 0 &&
             mcdu._zeroFuelWeightZFWCGEntered &&
-            mcdu._blockFuelEntered;
+            (mcdu._blockFuelEntered || mcdu.isAnEngineOn());
     }
     static trySetFuelPred(mcdu) {
         if (CDUInitPage.fuelPredConditionsMet(mcdu) && !mcdu._fuelPredDone) {
@@ -375,10 +371,22 @@ class CDUInitPage {
         }
         mcdu.onRightInput[0] = async (value, scratchpadCallback) => {
             if (value === "") {
-                mcdu.setScratchpadText(
-                    (isFinite(getZfw()) ? (getZfw() / 1000).toFixed(1) : "") +
-                    "/" +
-                    (isFinite(getZfwcg()) ? getZfwcg().toFixed(1) : ""));
+                let zfw = undefined;
+                let zfwCg = undefined;
+                if (!!SimVar.GetSimVarValue("L:A32NX_BOARDING_STARTED_BY_USR", "bool")) {
+                    zfw = SimVar.GetSimVarValue("L:A32NX_AIRFRAME_ZFW_DESIRED", "number");
+                    zfwCg = SimVar.GetSimVarValue("L:A32NX_AIRFRAME_ZFW_CG_PERCENT_MAC_DESIRED", "number");
+                } else if (isFinite(getZfw()) && isFinite(getZfwcg())) {
+                    zfw = getZfw();
+                    zfwCg = getZfwcg();
+                }
+
+                // ZFW/ZFWCG auto-fill helper
+                if (zfw && zfwCg) {
+                    mcdu.setScratchpadText(`${(zfw / 1000).toFixed(1)}/${zfwCg.toFixed(1)}`);
+                } else {
+                    mcdu.setScratchpadMessage(NXSystemMessages.formatError);
+                }
             } else {
                 if (mcdu.trySetZeroFuelWeightZFWCG(value)) {
                     CDUInitPage.updateTowIfNeeded(mcdu);
@@ -574,19 +582,21 @@ class CDUInitPage {
                 };
 
                 if (mcdu.altDestination) {
-                    if (mcdu._routeAltFuelEntered) {
-                        if (isFinite(mcdu.getRouteAltFuelWeight())) {
-                            altnWeightCell.update(NXUnits.kgToUser(mcdu.getRouteAltFuelWeight()).toFixed(1), Column.cyan);
-                            altnTimeCell.update(FMCMainDisplay.minutesTohhmm(mcdu.getRouteAltFuelTime()), Column.green, Column.small);
-                        }
-                    } else {
+                    const altFuelEntered = mcdu._routeAltFuelEntered;
+                    if (!altFuelEntered) {
                         mcdu.tryUpdateRouteAlternate();
-                        if (isFinite(mcdu.getRouteAltFuelWeight())) {
-                            altnWeightCell.update(NXUnits.kgToUser(mcdu.getRouteAltFuelWeight()).toFixed(1), Column.cyan, Column.small);
+                    }
+                    if (isFinite(mcdu.getRouteAltFuelWeight())) {
+                        altnWeightCell.update(NXUnits.kgToUser(mcdu.getRouteAltFuelWeight()).toFixed(1), Column.cyan, altFuelEntered? Column.big : Column.small);
+                        const time = mcdu.getRouteAltFuelTime();
+                        if (time) {
                             altnTimeCell.update(FMCMainDisplay.minutesTohhmm(mcdu.getRouteAltFuelTime()), Column.green, Column.small);
+                            altnCellDivider.updateAttributes(Column.green, Column.small);
+                        } else {
+                            altnTimeCell.update('----',Column.white);
+                            altnCellDivider.updateAttributes(Column.white, altFuelEntered? Column.big : Column.small);
                         }
                     }
-                    altnCellDivider.updateAttributes(Column.green, Column.small);
                 } else {
                     altnWeightCell.update("0.0", Column.green, Column.small);
                 }

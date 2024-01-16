@@ -3,19 +3,21 @@
 # get directory of this script relative to root
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 COMMON_DIR="${DIR}/../../../../fbw-common/src/wasm"
-OUTPUT="${DIR}/../../../out/flybywire-aircraft-a380-842/SimObjects/AirPlanes/fbw_a380X/panel/fadec.wasm"
+OUTPUT="${DIR}/../../../out/flybywire-aircraft-a380-842/SimObjects/AirPlanes/FlyByWire_A380_842/panel/fadec.wasm"
 
 echo "DIR = $DIR"
 echo "COMMON_DIR = $COMMON_DIR"
 echo "OUTPUT = $OUTPUT"
 
 if [ "$1" == "--debug" ]; then
+  WASMLD_ARGS=""
   CLANG_ARGS="-g"
 else
-  WASMLD_ARGS="--strip-debug"
+  WASMLD_ARGS="-O2 --lto-O2 --strip-debug"
+  CLANG_ARGS="-flto -O2 -DNDEBUG"
 fi
 
-set -ex
+set -e
 
 # create temporary folder for o files
 mkdir -p "${DIR}/obj"
@@ -31,7 +33,6 @@ clang++ \
   -Wno-macro-redefined \
   --sysroot "${MSFS_SDK}/WASM/wasi-sysroot" \
   -target wasm32-unknown-wasi \
-  -flto \
   -D_MSFS_WASM=1 \
   -D__wasi__ \
   -D_LIBCPP_HAS_NO_THREADS \
@@ -41,7 +42,6 @@ clang++ \
   -fno-exceptions \
   -fms-extensions \
   -fvisibility=hidden \
-  -O3 \
   -I "${MSFS_SDK}/WASM/include" \
   -I "${MSFS_SDK}/SimConnect SDK/include" \
   -I "${COMMON_DIR}/fadec_common/src" \
@@ -65,7 +65,6 @@ wasm-ld \
   --export __wasm_call_ctors \
   --export-table \
   --gc-sections \
-  -O3 --lto-O3 \
   -lc++ -lc++abi \
   ${DIR}/obj/*.o \
   -o $OUTPUT

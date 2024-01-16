@@ -1,5 +1,11 @@
-import { DisplayManagementComputerEvents } from 'instruments/src/PFD/shared/DisplayManagementComputer';
-import { EventBus, DisplayComponent, FSComponent, NodeReference, VNode, Subscribable } from 'msfssdk';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
+import { DisplayComponent, FSComponent, NodeReference, VNode, Subscribable } from '@microsoft/msfs-sdk';
+import { ArincEventBus } from '@flybywiresim/fbw-sdk';
+
+import { DmcLogicEvents } from '../MsfsAvionicsCommon/providers/DmcPublisher';
 import { Arinc429Values } from './shared/ArincValueProvider';
 
 interface HorizontalTapeProps {
@@ -7,7 +13,7 @@ interface HorizontalTapeProps {
     valueSpacing: number;
     distanceSpacing: number;
     type: 'horizon' | 'headingTape'
-    bus: EventBus;
+    bus: ArincEventBus;
     yOffset?: Subscribable<number>;
 }
 export class HorizontalTape extends DisplayComponent<HorizontalTapeProps> {
@@ -71,11 +77,11 @@ export class HorizontalTape extends DisplayComponent<HorizontalTapeProps> {
             const dX = this.props.distanceSpacing / this.props.valueSpacing * headingOffset;
 
             if (headingOffset % 10 === 0) {
-                result.ticks.push(<path class="NormalStroke White" d={`m68.913 145.34v${tickLength}`} transform={`translate(${dX} 0)`} />);
-                result.ticks.unshift(<path class="NormalStroke White" d={`m68.913 145.34v${tickLength}`} transform={`translate(${-dX} 0)`} />);
+                result.ticks.push(<path class="NormalStroke White" d={`m68.913 145.34v${tickLength}`} style={`transform: translate3d(${dX}px, 0px, 0px)`} />);
+                result.ticks.unshift(<path class="NormalStroke White" d={`m68.913 145.34v${tickLength}`} style={`transform: translate3d(${-dX}px, 0px, 0px)`} />);
             } else {
-                result.ticks.push(<path class="NormalStroke White" d={`m68.913 145.34v${tickLength * 0.42}`} transform={`translate(${dX} 0)`} />);
-                result.ticks.unshift(<path class="NormalStroke White" d={`m68.913 145.34v${tickLength * 0.42}`} transform={`translate(${-dX} 0)`} />);
+                result.ticks.push(<path class="NormalStroke White" d={`m68.913 145.34v${tickLength * 0.42}`} style={`transform: translate3d(${dX}px, 0px, 0px)`} />);
+                result.ticks.unshift(<path class="NormalStroke White" d={`m68.913 145.34v${tickLength * 0.42}`} style={`transform: translate3d(${-dX}px, 0px, 0px)`} />);
             }
 
             if (headingOffset % 10 === 0) {
@@ -88,7 +94,7 @@ export class HorizontalTape extends DisplayComponent<HorizontalTapeProps> {
                         ref={textRef}
                         x="68.979425"
                         y="154.64206"
-                        transform={`translate(${-dX} 0)`}
+                        style={`transform: translate3d(${-dX}px, 0px, 0px)`}
                     >
                         {headingOffset}
 
@@ -103,7 +109,7 @@ export class HorizontalTape extends DisplayComponent<HorizontalTapeProps> {
                         ref={textRef}
                         x="68.979425"
                         y="154.64206"
-                        transform={`translate(${dX} 0)`}
+                        style={`transform: translate3d(${dX}px, 0px, 0px)`}
                     >
                         {(360 - headingOffset)}
 
@@ -119,20 +125,18 @@ export class HorizontalTape extends DisplayComponent<HorizontalTapeProps> {
     onAfterRender(node: VNode): void {
         super.onAfterRender(node);
 
-        const pf = this.props.bus.getSubscriber<Arinc429Values & DisplayManagementComputerEvents>();
+        const pf = this.props.bus.getArincSubscriber<Arinc429Values & DmcLogicEvents>();
 
         this.props.yOffset?.sub((yOffset) => {
             this.yOffset = yOffset;
             this.refElement.instance.style.transform = `translate3d(${this.tapeOffset}px, ${yOffset}px, 0px)`;
         });
 
-        pf.on('heading').handle((newVal) => {
-            const multiplier = 100;
-            const currentValueAtPrecision = Math.round(newVal.value * multiplier) / multiplier;
-            const tapeOffset = -currentValueAtPrecision % 10 * this.props.distanceSpacing / this.props.valueSpacing;
+        pf.on('heading').withArinc429Precision(2).handle((newVal) => {
+            const tapeOffset = -newVal.value % 10 * this.props.distanceSpacing / this.props.valueSpacing;
 
-            if (currentValueAtPrecision / 10 >= this.currentDrawnHeading + 1 || currentValueAtPrecision / 10 <= this.currentDrawnHeading) {
-                this.currentDrawnHeading = Math.floor(currentValueAtPrecision / 10);
+            if (newVal.value / 10 >= this.currentDrawnHeading + 1 || newVal.value / 10 <= this.currentDrawnHeading) {
+                this.currentDrawnHeading = Math.floor(newVal.value / 10);
 
                 const start = 330 + (this.currentDrawnHeading) * 10;
 

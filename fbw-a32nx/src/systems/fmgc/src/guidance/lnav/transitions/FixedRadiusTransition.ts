@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0
 
-import { MathUtils } from '@shared/MathUtils';
+import { Constants, MathUtils, TurnDirection } from '@flybywiresim/fbw-sdk';
 import { DFLeg } from '@fmgc/guidance/lnav/legs/DF';
 import { PILeg } from '@fmgc/guidance/lnav/legs/PI';
 import { TFLeg } from '@fmgc/guidance/lnav/legs/TF';
@@ -13,8 +13,6 @@ import { GuidanceParameters } from '@fmgc/guidance/ControlLaws';
 import { Coordinates } from '@fmgc/flightplanning/data/geo';
 import { CILeg } from '@fmgc/guidance/lnav/legs/CI';
 import { arcDistanceToGo, arcGuidance, arcLength, maxBank, minBank } from '@fmgc/guidance/lnav/CommonGeometry';
-import { TurnDirection } from '@fmgc/types/fstypes/FSEnums';
-import { Constants } from '@shared/Constants';
 import { LnavConfig } from '@fmgc/guidance/LnavConfig';
 import { Geo } from '@fmgc/utils/Geo';
 import { XFLeg } from '@fmgc/guidance/lnav/legs/XF';
@@ -45,7 +43,7 @@ export class FixedRadiusTransition extends Transition {
 
     private centre: Coordinates | undefined = undefined;
 
-    private revertTo: PathCaptureTransition | undefined = undefined;
+    public revertTo: PathCaptureTransition | undefined = undefined;
 
     constructor(
         public previousLeg: PrevLeg, // FIXME temporary
@@ -292,9 +290,9 @@ export class FixedRadiusTransition extends Transition {
         return arcDistanceToGo(ppos, itp, this.centre, this.sweepAngle);
     }
 
-    getGuidanceParameters(ppos: LatLongAlt, trueTrack: number, tas: Knots): GuidanceParameters | null {
+    getGuidanceParameters(ppos: LatLongAlt, trueTrack: number, tas: Knots, gs: Knots): GuidanceParameters | null {
         if (this.revertTo) {
-            return this.revertTo.getGuidanceParameters(ppos, trueTrack, tas);
+            return this.revertTo.getGuidanceParameters(ppos, trueTrack, tas, gs);
         }
 
         const [itp] = this.getTurningPoints();

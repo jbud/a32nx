@@ -1,3 +1,7 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 class McduMessage {
     constructor(text, isAmber = false, replace = "") {
         this.text = text;
@@ -60,6 +64,7 @@ const NXSystemMessages = {
     awyWptMismatch:         new TypeIMessage("AWY/WPT MISMATCH"),
     cancelAtisUpdate:       new TypeIMessage("CANCEL UPDATE BEFORE"),
     checkMinDestFob:        new TypeIIMessage("CHECK MIN DEST FOB"),
+    checkSpeedMode:         new TypeIIMessage("CHECK SPEED MODE"),
     checkToData:            new TypeIIMessage("CHECK TAKE OFF DATA", true),
     checkWeight:            new TypeIIMessage("CHECK WEIGHT", true),
     comUnavailable:         new TypeIMessage("COM UNAVAILABLE"),
@@ -75,8 +80,10 @@ const NXSystemMessages = {
     keyNotActive:           new TypeIMessage("KEY NOT ACTIVE"),
     latLonAbreviated:       new TypeIMessage("LAT/LON DISPL ABREVIATED"),
     listOf99InUse:          new TypeIMessage("LIST OF 99 IN USE"),
+    newAccAlt:              new TypeIIMessage("NEW ACC ALT-HHHH", false, "HHHH"),
     newAtisReceived:        new TypeIMessage("NEW ATIS: READ AGAIN"),
     newCrzAlt:              new TypeIIMessage("NEW CRZ ALT - HHHHH", false, "HHHHH"),
+    newThrRedAlt:           new TypeIIMessage("NEW THR RED ALT-HHHH", false, "HHHH"),
     noAtc:                  new TypeIMessage("NO ACTIVE ATC"),
     noAtisReceived:         new TypeIMessage("NO ATIS REPORT RECEIVED"),
     noIntersectionFound:    new TypeIMessage("NO INTERSECTION FOUND"),
@@ -89,13 +96,18 @@ const NXSystemMessages = {
     setHoldSpeed:           new TypeIIMessage("SET HOLD SPEED"),
     spdLimExceeded:         new TypeIIMessage("SPD LIM EXCEEDED", true),
     systemBusy:             new TypeIMessage("SYSTEM BUSY-TRY LATER"),
+    toSpeedTooLow:          new TypeIIMessage("TO SPEEDS TOO LOW", true),
     uplinkInsertInProg:     new TypeIIMessage("UPLINK INSERT IN PROG"),
     vToDisagree:            new TypeIIMessage("V1/VR/V2 DISAGREE", true),
-    waitForSystemResponse:  new TypeIMessage("WAIT FOR SYSTEM RESPONSE")
+    waitForSystemResponse:  new TypeIMessage("WAIT FOR SYSTEM RESPONSE"),
+    xxxIsDeselected:        new TypeIMessage("XXXX IS DESELECTED", false, "XXXX"),
+    stepAboveMaxFl:         new TypeIIMessage("STEP ABOVE MAX FL"),
+    stepAhead:              new TypeIIMessage("STEP AHEAD"),
+    stepDeleted:            new TypeIIMessage("STEP DELETED"),
 };
 
 const NXFictionalMessages = {
-    noSimBriefUser:         new TypeIMessage("NO SIMBRIEF USER"),
+    noNavigraphUser:         new TypeIMessage("NO NAVIGRAPH USER"),
     noAirportSpecified:     new TypeIMessage("NO AIRPORT SPECIFIED"),
     fltNbrInUse:            new TypeIMessage("FLT NBR IN USE"),
     fltNbrMissing:          new TypeIMessage("ENTER ATC FLT NBR"),

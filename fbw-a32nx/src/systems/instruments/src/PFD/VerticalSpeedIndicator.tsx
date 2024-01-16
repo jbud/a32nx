@@ -1,11 +1,16 @@
-import { ClockEvents, ComponentProps, DisplayComponent, EventBus, FSComponent, Subject, Subscribable, VNode } from 'msfssdk';
-import { Arinc429Word } from '@shared/arinc429';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
+import { ClockEvents, ComponentProps, DisplayComponent, FSComponent, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { ArincEventBus, Arinc429Word } from '@flybywiresim/fbw-sdk';
+
 import { Arinc429Values } from './shared/ArincValueProvider';
 import { PFDSimvars } from './shared/PFDSimvarPublisher';
 import { LagFilter } from './PFDUtils';
 
 interface VerticalSpeedIndicatorProps {
-    bus: EventBus,
+    bus: ArincEventBus,
     instrument: BaseInstrument,
     filteredRadioAltitude: Subscribable<number>,
 }
@@ -50,7 +55,7 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
     onAfterRender(node: VNode): void {
         super.onAfterRender(node);
 
-        const sub = this.props.bus.getSubscriber<PFDSimvars & Arinc429Values & ClockEvents>();
+        const sub = this.props.bus.getArincSubscriber<PFDSimvars & Arinc429Values & ClockEvents>();
 
         sub.on('tcasState').whenChanged().handle((s) => {
             this.tcasState.tcasState = s;
@@ -78,7 +83,7 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
             this.needsUpdate = true;
         });
 
-        sub.on('realTime').handle((_r) => {
+        sub.on('simTime').handle((_r) => {
             if (this.needsUpdate) {
                 if (this.tcasState.tcasState === 2) {
                     this.needleColour.set('White');
@@ -87,7 +92,7 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
             }
         });
 
-        sub.on('vs').withArinc429Precision(2).handle((vs) => {
+        sub.on('vs').withArinc429Precision(3).handle((vs) => {
             const filteredVS = this.lagFilter.step(vs.value, this.props.instrument.deltaTime / 1000);
 
             const absVSpeed = Math.abs(filteredVS);
@@ -157,7 +162,7 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
                         <path d="m151.84 117.39h-1.9151v1.4615h1.9151z" />
                         <path d="m151.84 127.59h-1.9151v1.2095h1.9151z" />
                     </g>
-                    <g class="SmallStroke  White">
+                    <g class="SmallStroke White">
                         <path d="m149.92 67.216h1.7135h0" />
                         <path d="m151.84 48.569h-1.9151h0" />
                         <path d="m151.84 38.489h-1.9151h0" />
@@ -184,9 +189,9 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
 }
 
 class VSpeedNeedle extends DisplayComponent<{ yOffset: Subscribable<number>, needleColour: Subscribable<string> }> {
-    private outLineRef = FSComponent.createRef<SVGPathElement>();
-
     private indicatorRef = FSComponent.createRef<SVGPathElement>();
+
+    private readonly pathSub = Subject.create('');
 
     onAfterRender(node: VNode): void {
         super.onAfterRender(node);
@@ -199,8 +204,7 @@ class VSpeedNeedle extends DisplayComponent<{ yOffset: Subscribable<number>, nee
         this.props.yOffset.sub((yOffset) => {
             const path = `m${centerX - dxBorder} ${centerY + dxBorder / dxFull * yOffset} l ${dxBorder - dxFull} ${(1 - dxBorder / dxFull) * yOffset}`;
 
-            this.outLineRef.instance.setAttribute('d', path);
-            this.indicatorRef.instance.setAttribute('d', path);
+            this.pathSub.set(path);
         });
 
         this.props.needleColour.sub((colour) => {
@@ -211,31 +215,33 @@ class VSpeedNeedle extends DisplayComponent<{ yOffset: Subscribable<number>, nee
     render(): VNode | null {
         return (
             <>
-                <path ref={this.outLineRef} class="HugeOutline" />
-                <path ref={this.indicatorRef} id="VSpeedIndicator" />
+                <path d={this.pathSub} class="HugeOutline" />
+                <path d={this.pathSub} ref={this.indicatorRef} id="VSpeedIndicator" />
             </>
         );
     }
 }
 
-class VSpeedText extends DisplayComponent<{ bus: EventBus, yOffset: Subscribable<number>, textColour: Subscribable<string> }> {
+class VSpeedText extends DisplayComponent<{ bus: ArincEventBus, yOffset: Subscribable<number>, textColour: Subscribable<string> }> {
     private vsTextRef = FSComponent.createRef<SVGTextElement>();
 
     private groupRef = FSComponent.createRef<SVGGElement>();
 
+    private visibilitySub = Subject.create('hidden');
+
     onAfterRender(node: VNode): void {
         super.onAfterRender(node);
 
-        const sub = this.props.bus.getSubscriber<Arinc429Values>();
+        const sub = this.props.bus.getArincSubscriber<Arinc429Values>();
 
-        sub.on('vs').handle((vs) => {
+        sub.on('vs').withArinc429Precision(2).handle((vs) => {
             const absVSpeed = Math.abs(vs.value);
 
             if (absVSpeed < 200) {
-                this.groupRef.instance.setAttribute('visibility', 'hidden');
-                return;
+                this.visibilitySub.set('hidden');
+            } else {
+                this.visibilitySub.set('visible');
             }
-            this.groupRef.instance.setAttribute('visibility', 'visible');
 
             const sign = Math.sign(vs.value);
 
@@ -243,7 +249,7 @@ class VSpeedText extends DisplayComponent<{ bus: EventBus, yOffset: Subscribable
 
             const text = (Math.round(absVSpeed / 100) < 10 ? '0' : '') + Math.round(absVSpeed / 100).toString();
             this.vsTextRef.instance.textContent = text;
-            this.groupRef.instance.setAttribute('transform', `translate(0 ${textOffset})`);
+            this.groupRef.instance.style.transform = `translate3d(0px, ${textOffset}px, 0px)`;
         });
 
         this.props.textColour.sub((colour) => {
@@ -254,7 +260,7 @@ class VSpeedText extends DisplayComponent<{ bus: EventBus, yOffset: Subscribable
 
     render(): VNode {
         return (
-            <g ref={this.groupRef} id="VSpeedTextGroup">
+            <g ref={this.groupRef} visibility={this.visibilitySub} id="VSpeedTextGroup">
                 <path class="BackgroundFill" d="m158.4 83.011h-7.0514v-4.3989h7.0514z" />
                 <text ref={this.vsTextRef} id="VSpeedText" x="155.14055" y="82.554756" />
             </g>
@@ -263,7 +269,7 @@ class VSpeedText extends DisplayComponent<{ bus: EventBus, yOffset: Subscribable
 }
 
 interface VSpeedTcasProps extends ComponentProps {
-    bus: EventBus;
+    bus: ArincEventBus;
 }
 class VSpeedTcas extends DisplayComponent<VSpeedTcasProps> {
     private tcasGroup = FSComponent.createRef<SVGGElement>();

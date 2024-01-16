@@ -3,7 +3,7 @@
 # get directory of this script relative to root
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 COMMON_DIR="${DIR}/../../../../fbw-common/src/wasm"
-OUTPUT="${DIR}/../../../out/flybywire-aircraft-a380-842/SimObjects/AirPlanes/fbw_a380X/panel/fbw.wasm"
+OUTPUT="${DIR}/../../../out/flybywire-aircraft-a380-842/SimObjects/AirPlanes/FlyByWire_A380_842/panel/fbw.wasm"
 
 if [ "$1" == "--debug" ]; then
   WASMLD_ARGS=""
@@ -13,7 +13,7 @@ else
   CLANG_ARGS="-flto -O2 -DNDEBUG"
 fi
 
-set -ex
+set -e
 
 # create temporary folder for o files
 mkdir -p "${DIR}/obj"
@@ -83,6 +83,8 @@ clang++ \
   "${DIR}/src/interface/SimConnectInterface.cpp" \
   -I "${DIR}/src/prim" \
   "${DIR}/src/prim/Prim.cpp" \
+  -I "${DIR}/src/sec" \
+  "${DIR}/src/sec/Sec.cpp" \
   -I "${DIR}/src/fac" \
   "${DIR}/src/fac/Fac.cpp" \
   -I "${DIR}/src/failures" \
@@ -102,6 +104,8 @@ clang++ \
   "${DIR}/src/model/Double2MultiWord.cpp" \
   "${DIR}/src/model/A380PrimComputer_data.cpp" \
   "${DIR}/src/model/A380PrimComputer.cpp" \
+  "${DIR}/src/model/A380SecComputer_data.cpp" \
+  "${DIR}/src/model/A380SecComputer.cpp" \
   "${DIR}/src/model/A380PitchNormalLaw.cpp" \
   "${DIR}/src/model/A380PitchAlternateLaw.cpp" \
   "${DIR}/src/model/A380PitchDirectLaw.cpp" \
@@ -112,6 +116,7 @@ clang++ \
   "${DIR}/src/model/look1_binlxpw.cpp" \
   "${DIR}/src/model/look2_binlcpw.cpp" \
   "${DIR}/src/model/look2_binlxpw.cpp" \
+  "${DIR}/src/model/look2_pbinlxpw.cpp" \
   "${DIR}/src/model/mod_mvZvttxs.cpp" \
   "${DIR}/src/model/MultiWordIor.cpp" \
   "${DIR}/src/model/rt_modd.cpp" \
@@ -121,6 +126,7 @@ clang++ \
   "${COMMON_DIR}/fbw_common/src/zlib/zfstream.cc" \
   "${DIR}/src/FlyByWireInterface.cpp" \
   "${DIR}/src/FlightDataRecorder.cpp" \
+  "${DIR}/src/Arinc429.cpp" \
   "${DIR}/src/Arinc429Utils.cpp" \
   "${COMMON_DIR}/fbw_common/src/LocalVariable.cpp" \
   "${COMMON_DIR}/fbw_common/src/InterpolatingLookupTable.cpp" \

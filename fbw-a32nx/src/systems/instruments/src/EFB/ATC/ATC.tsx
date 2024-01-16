@@ -1,16 +1,18 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 /* eslint-disable max-len */
 import React, { useCallback, useEffect, useState } from 'react';
 import * as apiClient from '@flybywiresim/api-client';
 import { AtcType } from '@flybywiresim/api-client';
-import useInterval from '@instruments/common/useInterval';
+import { useSimVar, useInterval, useSplitSimVar, usePersistentProperty } from '@flybywiresim/fbw-sdk';
 import { Link } from 'react-router-dom';
 import { CloudArrowDown, Gear, InfoCircle } from 'react-bootstrap-icons';
 import { toast } from 'react-toastify';
 import { t } from '../translation';
 import { pathify } from '../Utils/routing';
 import { ScrollableContainer } from '../UtilComponents/ScrollableContainer';
-import { useSimVar, useSplitSimVar } from '../../Common/simVars';
-import { usePersistentProperty } from '../../Common/persistence';
 import { SimpleInput } from '../UtilComponents/Form/SimpleInput/SimpleInput';
 import { SelectGroup, SelectItem } from '../UtilComponents/Form/Select';
 import { TooltipWrapper } from '../UtilComponents/TooltipWrapper';
@@ -217,7 +219,10 @@ export const ATC = () => {
                             </TooltipWrapper>
                             <SelectGroup>
                                 {atcTypeOptions.map((option) => (
-                                    <TooltipWrapper text={`${t('AirTrafficControl.TT.AtcTypeFilter')} ${option.typeName}`}>
+                                    <TooltipWrapper
+                                        key={option.typeName}
+                                        text={`${t('AirTrafficControl.TT.AtcTypeFilter')} ${option.typeName}`}
+                                    >
                                         <div>
                                             <SelectItem
                                                 className="overflow-hidden w-[120px] whitespace-nowrap"
@@ -237,6 +242,7 @@ export const ATC = () => {
                                 .filter((c) => filterControllers(c))
                                 .map((controller, index) => (
                                     <FrequencyCard
+                                        key={controller.frequency}
                                         className={`${index && index % 2 !== 0 && 'ml-4'} ${index >= 2 && 'mt-4'}`}
                                         callsign={controller.callsign}
                                         frequency={controller.frequency}

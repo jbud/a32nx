@@ -1,6 +1,9 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 import React from 'react';
-import { usePersistentNumberProperty, usePersistentProperty } from '@instruments/common/persistence';
-import { useSimVar } from '@instruments/common/simVars';
+import { usePersistentNumberProperty, usePersistentProperty, useSimVar } from '@flybywiresim/fbw-sdk';
 
 import { t } from '../../translation';
 import { Toggle } from '../../UtilComponents/Form/Toggle';
@@ -20,8 +23,9 @@ export const RealismPage = () => {
     const [boardingRate, setBoardingRate] = usePersistentProperty('CONFIG_BOARDING_RATE', 'REAL');
     const [mcduInput, setMcduInput] = usePersistentProperty('MCDU_KB_INPUT', 'DISABLED');
     const [mcduTimeout, setMcduTimeout] = usePersistentProperty('CONFIG_MCDU_KB_TIMEOUT', '60');
+    const [pauseAtTod, setPauseAtTod] = usePersistentProperty('PAUSE_AT_TOD', 'DISABLED');
+    const [todOffset, setTodOffset] = usePersistentNumberProperty('PAUSE_AT_TOD_DISTANCE', 10);
     const [realisticTiller, setRealisticTiller] = usePersistentNumberProperty('REALISTIC_TILLER_ENABLED', 0);
-    const [homeCockpit, setHomeCockpit] = usePersistentProperty('HOME_COCKPIT_ENABLED', '0');
     const [autoFillChecklists, setAutoFillChecklists] = usePersistentNumberProperty('EFB_AUTOFILL_CHECKLISTS', 0);
     const [syncEfis, setFoEfis] = usePersistentNumberProperty('FO_SYNC_EFIS_ENABLED', 0);
     const [pilotAvatar, setPilotAvatar] = usePersistentNumberProperty('CONFIG_PILOT_AVATAR_VISIBLE', 0);
@@ -51,6 +55,7 @@ export const RealismPage = () => {
                 <SelectGroup>
                     {adirsAlignTimeButtons.map((button) => (
                         <SelectItem
+                            key={button.name}
                             onSelect={() => {
                                 setAdirsAlignTime(button.setting);
                                 setAdirsAlignTimeSimVar(button.simVarValue);
@@ -67,6 +72,7 @@ export const RealismPage = () => {
                 <SelectGroup>
                     {dmcSelfTestTimeButtons.map((button) => (
                         <SelectItem
+                            key={button.name}
                             onSelect={() => setDmcSelfTestTime(button.setting)}
                             selected={dmcSelfTestTime === button.setting}
                         >
@@ -80,6 +86,7 @@ export const RealismPage = () => {
                 <SelectGroup>
                     {boardingRateButtons.map((button) => (
                         <SelectItem
+                            key={button.name}
                             onSelect={() => setBoardingRate(button.setting)}
                             selected={boardingRate === button.setting}
                         >
@@ -91,10 +98,6 @@ export const RealismPage = () => {
 
             <SettingItem name={t('Settings.Realism.AutofillChecklists')} unrealistic>
                 <Toggle value={!!autoFillChecklists} onToggle={(value) => setAutoFillChecklists(value ? 1 : 0)} />
-            </SettingItem>
-
-            <SettingItem name={t('Settings.Realism.HomeCockpitMode')}>
-                <Toggle value={homeCockpit === '1'} onToggle={(value) => setHomeCockpit(value ? '1' : '0')} />
             </SettingItem>
 
             <SettingItem name={t('Settings.Realism.SeparateTillerFromRudderInputs')}>
@@ -136,6 +139,27 @@ export const RealismPage = () => {
                 <Toggle value={!!firstOfficerAvatar} onToggle={(value) => setFirstOfficerAvatar(value ? 1 : 0)} />
             </SettingItem>
 
+            <SettingGroup>
+                <SettingItem name={t('Settings.Realism.PauseAtTod')} unrealistic groupType="parent">
+                    <Toggle value={pauseAtTod === 'ENABLED'} onToggle={(value) => setPauseAtTod(value ? 'ENABLED' : 'DISABLED')} />
+                </SettingItem>
+                {pauseAtTod === 'ENABLED' && (
+                    <SettingItem name={t('Settings.Realism.PauseAtTodDistance')} groupType="sub">
+                        <SimpleInput
+                            className="text-center w-30"
+                            value={todOffset}
+                            min={0}
+                            max={50.0}
+                            disabled={(pauseAtTod !== 'ENABLED')}
+                            onChange={(event) => {
+                                if (!Number.isNaN(event) && parseInt(event) >= 0 && parseInt(event) <= 50.0) {
+                                    setTodOffset(parseFloat(event.trim()));
+                                }
+                            }}
+                        />
+                    </SettingItem>
+                )}
+            </SettingGroup>
         </SettingsPage>
     );
 };

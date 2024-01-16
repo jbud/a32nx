@@ -1,6 +1,10 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 /* eslint-disable max-len */
 import React, { useRef, useState, useEffect } from 'react';
-import { usePersistentProperty } from '@instruments/common/persistence';
+import { usePersistentProperty } from '@flybywiresim/fbw-sdk';
 import { CloudArrowDown, ZoomIn, ZoomOut } from 'react-bootstrap-icons';
 import { toast } from 'react-toastify';
 import { t } from '../../translation';
@@ -15,13 +19,14 @@ const NoSimBriefDataOverlay = () => {
     const simbriefDataLoaded = isSimbriefDataLoaded();
 
     const [simbriefDataPending, setSimbriefDataPending] = useState(false);
-    const [simbriefUserId] = usePersistentProperty('CONFIG_SIMBRIEF_USERID');
+    const [navigraphUsername] = usePersistentProperty('NAVIGRAPH_USERNAME');
+    const [overrideSimBriefUserID] = usePersistentProperty('CONFIG_OVERRIDE_SIMBRIEF_USERID');
 
     const fetchData = async () => {
         setSimbriefDataPending(true);
 
         try {
-            const action = await fetchSimbriefDataAction(simbriefUserId ?? '');
+            const action = await fetchSimbriefDataAction(navigraphUsername ?? '', overrideSimBriefUserID ?? '');
 
             dispatch(action);
             dispatch(setOfpScroll(0));

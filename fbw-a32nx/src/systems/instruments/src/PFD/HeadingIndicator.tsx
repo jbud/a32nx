@@ -1,5 +1,11 @@
-import { DisplayComponent, EventBus, FSComponent, HEvent, Subject, Subscribable, VNode } from 'msfssdk';
-import { DisplayManagementComputerEvents } from 'instruments/src/PFD/shared/DisplayManagementComputer';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
+import { DisplayComponent, FSComponent, HEvent, MappedSubject, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { Arinc429ConsumerSubject, ArincEventBus } from '@flybywiresim/fbw-sdk';
+
+import { DmcLogicEvents } from '../MsfsAvionicsCommon/providers/DmcPublisher';
 import { HorizontalTape } from './HorizontalTape';
 import { getSmallestAngle } from './PFDUtils';
 import { PFDSimvars } from './shared/PFDSimvarPublisher';
@@ -11,7 +17,7 @@ const DistanceSpacing = 7.555;
 const ValueSpacing = 5;
 
 interface HeadingTapeProps {
-    bus: EventBus;
+    bus: ArincEventBus;
     failed: Subscribable<boolean>;
 }
 
@@ -46,7 +52,7 @@ export class HeadingTape extends DisplayComponent<HeadingTapeProps> {
     }
 }
 
-export class HeadingOfftape extends DisplayComponent<{ bus: EventBus, failed: Subscribable<boolean>}> {
+export class HeadingOfftape extends DisplayComponent<{ bus: ArincEventBus, failed: Subscribable<boolean>}> {
     private normalRef = FSComponent.createRef<SVGGElement>();
 
     private abnormalRef = FSComponent.createRef<SVGGElement>();
@@ -60,12 +66,12 @@ export class HeadingOfftape extends DisplayComponent<{ bus: EventBus, failed: Su
     onAfterRender(node: VNode): void {
         super.onAfterRender(node);
 
-        const sub = this.props.bus.getSubscriber<DisplayManagementComputerEvents & PFDSimvars & Arinc429Values & HEvent>();
+        const sub = this.props.bus.getArincSubscriber<DmcLogicEvents & PFDSimvars & Arinc429Values & HEvent>();
 
-        sub.on('heading').handle((h) => {
-            this.heading.set(h.value);
+        sub.on('heading').withArinc429Precision(2).handle((word) => {
+            this.heading.set(word.value);
 
-            if (h.isNormalOperation()) {
+            if (word.isNormalOperation()) {
                 this.normalRef.instance.style.visibility = 'visible';
                 this.abnormalRef.instance.style.visibility = 'hidden';
             } else {
@@ -107,7 +113,7 @@ export class HeadingOfftape extends DisplayComponent<{ bus: EventBus, failed: Su
 }
 
 interface SelectedHeadingProps {
-    bus: EventBus;
+    bus: ArincEventBus;
     heading: Subscribable<number>;
 }
 
@@ -197,31 +203,33 @@ class SelectedHeading extends DisplayComponent<SelectedHeadingProps> {
 
 interface GroundTrackBugProps {
     heading: Subscribable<number>;
-    bus: EventBus;
+    bus: ArincEventBus;
 }
 
 class GroundTrackBug extends DisplayComponent<GroundTrackBugProps> {
-    private trackIndicator = FSComponent.createRef<SVGGElement>();
+    private groundTrack = Arinc429ConsumerSubject.create(null);
+
+    private isVisibleSub = MappedSubject.create(([groundTrack, heading]) => {
+        const delta = getSmallestAngle(groundTrack.value, heading);
+        // TODO should also be hidden if heading is invalid
+        return groundTrack.isNormalOperation() && Math.abs(delta) < DisplayRange;
+    }, this.groundTrack, this.props.heading);
+
+    private transformSub = MappedSubject.create(([groundTrack, heading]) => {
+        const offset = getSmallestAngle(groundTrack.value, heading) * DistanceSpacing / ValueSpacing;
+        return `translate3d(${offset}px, 0px, 0px)`;
+    }, this.groundTrack, this.props.heading);
 
     onAfterRender(node: VNode): void {
         super.onAfterRender(node);
 
-        const sub = this.props.bus.getSubscriber<DisplayManagementComputerEvents>();
-
-        sub.on('track').handle((groundTrack) => {
-            //  if (groundTrack.isNormalOperation()) {
-            const offset = getSmallestAngle(groundTrack.value, this.props.heading.get()) * DistanceSpacing / ValueSpacing;
-            this.trackIndicator.instance.style.display = 'inline';
-            this.trackIndicator.instance.style.transform = `translate3d(${offset}px, 0px, 0px)`;
-            //   } else {
-            //       this.trackIndicator.instance.style.display = 'none';
-            //   }
-        });
+        const sub = this.props.bus.getArincSubscriber<DmcLogicEvents>();
+        this.groundTrack.setConsumer(sub.on('track').withArinc429Precision(3));
     }
 
     render(): VNode {
         return (
-            <g ref={this.trackIndicator} id="ActualTrackIndicator">
+            <g style={{ transform: this.transformSub, display: this.isVisibleSub.map((v) => (v ? '' : 'none')) }} id="ActualTrackIndicator">
                 <path class="ThickOutline CornerRound" d="m68.906 145.75-1.2592 1.7639 1.2592 1.7639 1.2592-1.7639z" />
                 <path class="ThickStroke Green CornerRound" d="m68.906 145.75-1.2592 1.7639 1.2592 1.7639 1.2592-1.7639z" />
             </g>
@@ -341,7 +349,7 @@ class QFUIndicator extends DisplayComponent<{ ILSCourse: Subscribable<number>, h
 }
 
 interface TrueFlagProps {
-    bus: EventBus;
+    bus: ArincEventBus;
 }
 
 class TrueFlag extends DisplayComponent<TrueFlagProps> {
@@ -354,9 +362,8 @@ class TrueFlag extends DisplayComponent<TrueFlagProps> {
     private readonly trueFlagRef = FSComponent.createRef<SVGGElement>();
 
     /** @inheritdoc */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     onAfterRender(node: VNode): void {
-        this.props.bus.getSubscriber<DisplayManagementComputerEvents>().on('trueRefActive').whenChanged().handle((v) => this.trueRefActive.set(v));
+        this.props.bus.getSubscriber<DmcLogicEvents>().on('trueRefActive').whenChanged().handle((v) => this.trueRefActive.set(v));
         // FIXME this should be 127-11 from FWC
         this.props.bus.getSubscriber<PFDSimvars>().on('slatPosLeft').withPrecision(0.25).handle((v) => this.slatsExtended.set(v > 0.4));
 

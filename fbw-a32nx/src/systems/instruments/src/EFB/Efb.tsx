@@ -2,23 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0
 
 import React, { useEffect, useState } from 'react';
-
-import useInterval from '@instruments/common/useInterval';
+import { useSimVar, useInterval, useInteractionEvent, usePersistentNumberProperty, usePersistentProperty, NavigraphClient } from '@flybywiresim/fbw-sdk';
 import { Redirect, Route, Switch, useHistory } from 'react-router-dom';
-import { useSimVar } from '@instruments/common/simVars';
-import { useInteractionEvent } from '@instruments/common/hooks';
-import { usePersistentNumberProperty, usePersistentProperty } from '@instruments/common/persistence';
-
 import { Battery } from 'react-bootstrap-icons';
 import { toast, ToastContainer } from 'react-toastify';
 import { distanceTo } from 'msfs-geo';
 import { Tooltip } from './UtilComponents/TooltipWrapper';
 import { FbwLogo } from './UtilComponents/FbwLogo';
 import { AlertModal, ModalContainer, useModals } from './UtilComponents/Modals/Modals';
-import NavigraphClient, { NavigraphContext } from './ChartsApi/Navigraph';
-import 'react-toastify/dist/ReactToastify.css';
-import './toast.css';
-
+import { NavigraphContext } from './Apis/Navigraph/Navigraph';
 import { StatusBar } from './StatusBar/StatusBar';
 import { ToolBar } from './ToolBar/ToolBar';
 import { Dashboard } from './Dashboard/Dashboard';
@@ -30,7 +22,6 @@ import { ATC } from './ATC/ATC';
 import { Settings } from './Settings/Settings';
 import { Failures } from './Failures/Failures';
 import { Presets } from './Presets/Presets';
-
 import { clearEfbState, useAppDispatch, useAppSelector } from './Store/store';
 import { fetchSimbriefDataAction, isSimbriefDataLoaded } from './Store/features/simBrief';
 import { setFlightPlanProgress } from './Store/features/flightProgress';
@@ -38,6 +29,9 @@ import { Checklists, setAutomaticItemStates } from './Checklists/Checklists';
 import { CHECKLISTS } from './Checklists/Lists';
 import { setChecklistItems } from './Store/features/checklists';
 import { FlyPadPage } from './Settings/Pages/FlyPadPage';
+
+import 'react-toastify/dist/ReactToastify.css';
+import './toast.css';
 
 const BATTERY_DURATION_CHARGE_MIN = 180;
 const BATTERY_DURATION_DISCHARGE_MIN = 540;
@@ -56,6 +50,7 @@ const EmptyBatteryScreen = () => (
 
 export enum PowerStates {
     SHUTOFF,
+    SHUTDOWN,
     STANDBY,
     LOADING,
     LOADED,
@@ -77,28 +72,34 @@ interface BatteryStatus {
 
 export const usePower = () => React.useContext(PowerContext);
 
+export const getAirframeType = () => new URL(document.querySelectorAll('vcockpit-panel > *')[0].getAttribute('url')).searchParams.get('Airframe');
+
 const Efb = () => {
     const [powerState, setPowerState] = useState<PowerStates>(PowerStates.SHUTOFF);
-    const [currentLocalTime] = useSimVar('E:LOCAL TIME', 'seconds', 5000);
     const [absoluteTime] = useSimVar('E:ABSOLUTE TIME', 'seconds', 5000);
     const [, setBrightness] = useSimVar('L:A32NX_EFB_BRIGHTNESS', 'number');
     const [brightnessSetting] = usePersistentNumberProperty('EFB_BRIGHTNESS', 0);
     const [usingAutobrightness] = useSimVar('L:A32NX_EFB_USING_AUTOBRIGHTNESS', 'bool', 300);
-    const [dayOfYear] = useSimVar('E:ZULU DAY OF YEAR', 'number');
     const [batteryLifeEnabled] = usePersistentNumberProperty('EFB_BATTERY_LIFE_ENABLED', 1);
 
     const [navigraph] = useState(() => new NavigraphClient());
 
     const dispatch = useAppDispatch();
     const simbriefData = useAppSelector((state) => state.simbrief.data);
-    const [simbriefUserId] = usePersistentProperty('CONFIG_SIMBRIEF_USERID');
+    const [navigraphUsername] = usePersistentProperty('NAVIGRAPH_USERNAME');
+    const [overrideSimBriefUserID] = usePersistentProperty('CONFIG_OVERRIDE_SIMBRIEF_USERID');
     const [autoSimbriefImport] = usePersistentProperty('CONFIG_AUTO_SIMBRIEF_IMPORT');
 
     const [dc2BusIsPowered] = useSimVar('L:A32NX_ELEC_DC_2_BUS_IS_POWERED', 'bool');
-    const [batteryLevel, setBatteryLevel] = useState<BatteryStatus>({ level: 100, lastChangeTimestamp: absoluteTime, isCharging: dc2BusIsPowered });
+    const [batteryLevel, setBatteryLevel] = useState<BatteryStatus>({
+        level: 100,
+        lastChangeTimestamp: absoluteTime,
+        isCharging: dc2BusIsPowered,
+    });
 
     const [ac1BusIsPowered] = useSimVar('L:A32NX_ELEC_AC_1_BUS_IS_POWERED', 'number', 1000);
     const [, setLoadLightingPresetVar] = useSimVar('L:A32NX_LIGHTING_PRESET_LOAD', 'number', 200);
+    const [autoDisplayBrightness] = useSimVar('GLASSCOCKPIT AUTOMATIC BRIGHTNESS', 'percent', 1000);
     const [timeOfDay] = useSimVar('E:TIME OF DAY', 'number', 5000);
     const [autoLoadLightingPresetEnabled] = usePersistentNumberProperty('LIGHT_PRESET_AUTOLOAD', 0);
     const [autoLoadDayLightingPresetID] = usePersistentNumberProperty('LIGHT_PRESET_AUTOLOAD_DAY', 0);
@@ -199,7 +200,7 @@ const Efb = () => {
             }
 
             if ((!simbriefData || !isSimbriefDataLoaded()) && autoSimbriefImport === 'ENABLED') {
-                fetchSimbriefDataAction(simbriefUserId ?? '').then((action) => {
+                fetchSimbriefDataAction(navigraphUsername ?? '', overrideSimBriefUserID ?? '').then((action) => {
                     dispatch(action);
                 }).catch((e) => {
                     toast.error(e.message);
@@ -210,20 +211,24 @@ const Efb = () => {
 
     // Automatically load a lighting preset
     useEffect(() => {
-        if (ac1BusIsPowered && autoLoadLightingPresetEnabled) {
+        if (ac1BusIsPowered && powerState === PowerStates.LOADED && autoLoadLightingPresetEnabled) {
+            // TIME OF DAY enum : 1 = Day ; 2 = Dusk/Dawn ; 3 = Night
             switch (timeOfDay) {
             case 1:
                 if (autoLoadDayLightingPresetID !== 0) {
+                    console.log('Auto-loading lighting preset: ', autoLoadDayLightingPresetID);
                     setLoadLightingPresetVar(autoLoadDayLightingPresetID);
                 }
                 break;
             case 2:
                 if (autoLoadDawnDuskLightingPresetID !== 0) {
+                    console.log('Auto-loading lighting preset: ', autoLoadDawnDuskLightingPresetID);
                     setLoadLightingPresetVar(autoLoadDawnDuskLightingPresetID);
                 }
                 break;
             case 3:
                 if (autoLoadNightLightingPresetID !== 0) {
+                    console.log('Auto-loading lighting preset: ', autoLoadNightLightingPresetID);
                     setLoadLightingPresetVar(autoLoadNightLightingPresetID);
                 }
                 break;
@@ -231,7 +236,7 @@ const Efb = () => {
                 break;
             }
         }
-    }, [ac1BusIsPowered, autoLoadLightingPresetEnabled]);
+    }, [ac1BusIsPowered, powerState, autoLoadLightingPresetEnabled]);
 
     useInterval(() => {
         if (!autoFillChecklists) return;
@@ -261,40 +266,18 @@ const Efb = () => {
         }
     });
 
-    /**
-     * Returns a brightness value between 0 and 100 inclusive based on the ratio of the solar altitude to the solar zenith
-     * @param {number} latitude - The latitude of the location (-90 to 90)
-     * @param {number} dayOfYear - The day of the year (0 to 365)
-     * @param {number} timeOfDay - The time of day in hours (0 to 24)
-     */
-    const calculateBrightness = (latitude: number, dayOfYear: number, timeOfDay: number) => {
-        const solarTime = timeOfDay + (dayOfYear - 1) * 24;
-        const solarDeclination = 0.409 * Math.sin(2 * Math.PI * (284 + dayOfYear) / 365);
-        const solarAltitude = Math.asin(
-            Math.sin(latitude * Math.PI / 180) * Math.sin(solarDeclination) + Math.cos(latitude * Math.PI / 180) * Math.cos(solarDeclination) * Math.cos(2 * Math.PI * solarTime / 24),
-        );
-        const solarZenith = 90 - (latitude - solarDeclination);
-
-        return Math.min(Math.max((-solarAltitude * (180 / Math.PI)) / solarZenith * 100, 0), 100);
-    };
-
     const { posX, posY, shown, text } = useAppSelector((state) => state.tooltip);
 
     useEffect(() => {
-        if (usingAutobrightness && powerState === PowerStates.LOADED) {
-            setBrightness(calculateBrightness(lat, dayOfYear, currentLocalTime / 3600));
-        }
-    }, [powerState, currentLocalTime, usingAutobrightness]);
-
-    useEffect(() => {
-        if (!usingAutobrightness) {
+        if (powerState !== PowerStates.LOADED && powerState !== PowerStates.SHUTDOWN) {
+            // die, retinas!
+            setBrightness(100);
+        } else if (usingAutobrightness) {
+            setBrightness(autoDisplayBrightness);
+        } else {
             setBrightness(brightnessSetting);
         }
-    }, [usingAutobrightness]);
-
-    useEffect(() => {
-        setBrightness(brightnessSetting);
-    }, [powerState]);
+    }, [powerState, brightnessSetting, autoDisplayBrightness, usingAutobrightness]);
 
     // =========================================================================
     // <Pushback>
@@ -319,6 +302,7 @@ const Efb = () => {
     case PowerStates.STANDBY:
         return <div className="w-screen h-screen" onClick={offToLoaded} />;
     case PowerStates.LOADING:
+    case PowerStates.SHUTDOWN:
         return <LoadingScreen />;
     case PowerStates.EMPTY:
         if (dc2BusIsPowered === 1) {

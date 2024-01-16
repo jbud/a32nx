@@ -9,11 +9,6 @@ class A32NX_Core {
                 updateInterval: 100,
             },
             {
-                name: 'APU',
-                module: new A32NX_APU(),
-                updateInterval: 100,
-            },
-            {
                 name: 'BaroSelector',
                 module: new A32NX_BaroSelector(),
                 updateInterval: 300,
@@ -26,11 +21,6 @@ class A32NX_Core {
             {
                 name: 'Refuel',
                 module: new A32NX_Refuel(),
-                updateInterval: 150,
-            },
-            {
-                name: 'Boarding',
-                module: new A32NX_Boarding(),
                 updateInterval: 150,
             },
             {
@@ -70,7 +60,7 @@ class A32NX_Core {
         }
 
         this.soundManager = new A32NX_SoundManager();
-        this.tipsManager = new A32NX_TipsManager();
+        this.tipsManager = A32NX_TipsManager.instance;
     }
 
     init(startTime) {
@@ -80,6 +70,7 @@ class A32NX_Core {
                 moduleDefinition.module.init();
             }
         });
+
         this.isInit = true;
     }
 

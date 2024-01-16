@@ -1,7 +1,10 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 /* eslint-disable no-console */
 
-import { NXDataStore } from '@shared/persistence';
-import { PopUp } from '@shared/popup';
+import { NXDataStore, PopUpDialog } from '@flybywiresim/fbw-sdk';
 import * as Sentry from '@sentry/browser';
 import { BrowserTracing } from '@sentry/tracing';
 import { CaptureConsole as CaptureConsoleIntegration } from '@sentry/integrations';
@@ -149,7 +152,7 @@ export class FbwAircraftSentryClient {
      * @returns a `Promise<boolean` indicating the consent state
      */
     static async requestConsent() {
-        const popup = new PopUp();
+        const popup = new PopUpDialog();
 
         return new Promise<boolean>((resolve) => {
             popup.showPopUp(

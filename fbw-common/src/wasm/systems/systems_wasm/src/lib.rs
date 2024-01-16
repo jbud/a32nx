@@ -1,6 +1,7 @@
 #[macro_use]
 pub mod aspects;
 mod electrical;
+mod engines;
 mod failures;
 mod msfs;
 
@@ -11,6 +12,7 @@ use ::msfs::legacy::{AircraftVariable, NamedVariable};
 
 use crate::aspects::{Aspect, ExecuteOn, MsfsAspectBuilder};
 use crate::electrical::{auxiliary_power_unit, electrical_buses};
+use crate::engines::engines;
 use ::msfs::{
     sim_connect::{data_definition, Period, SimConnect, SimConnectRecv, SIMCONNECT_OBJECT_ID_USER},
     sys, MSFSEvent,
@@ -100,11 +102,17 @@ impl<'a, 'b> MsfsSimulationBuilder<'a, 'b> {
         self,
         is_available_variable: Variable,
         fuel_valve_number: u8,
+        fuel_pump_number: u8,
     ) -> Result<Self, Box<dyn Error>> {
         self.with_aspect(auxiliary_power_unit(
             is_available_variable,
             fuel_valve_number,
+            fuel_pump_number,
         ))
+    }
+
+    pub fn with_engines(self, engine_count: usize) -> Result<Self, Box<dyn Error>> {
+        self.with_aspect(engines(engine_count))
     }
 
     pub fn with_failures(mut self, failures: Vec<(u64, FailureType)>) -> Self {
@@ -133,6 +141,14 @@ impl<'a, 'b> MsfsSimulationBuilder<'a, 'b> {
                 units.to_owned(),
                 index,
             ));
+        }
+
+        Ok(self)
+    }
+
+    pub fn provides_named_variable(mut self, name: &str) -> Result<Self, Box<dyn Error>> {
+        if let Some(registry) = &mut self.variable_registry {
+            registry.register(&Variable::Named(name.to_owned(), false));
         }
 
         Ok(self)
@@ -284,7 +300,7 @@ pub enum Variable {
     Aircraft(String, String, usize),
 
     /// A named variable accessible within the aspect, simulation and simulator.
-    Named(String),
+    Named(String, bool),
 
     /// A variable accessible within all aspects and the simulation.
     ///
@@ -300,7 +316,7 @@ impl Display for Variable {
             Self::Aircraft(name, _, index) => {
                 format!("Aircraft({})", Self::indexed_name(name, *index))
             }
-            Self::Named(name, ..) => format!("Named({})", name),
+            Self::Named(name, _has_prefix, ..) => format!("Named({})", name),
             Self::Aspect(name, ..) => format!("Aspect({})", name),
         };
 
@@ -314,7 +330,7 @@ impl Variable {
     }
 
     pub fn named(name: &str) -> Self {
-        Self::Named(name.into())
+        Self::Named(name.into(), true)
     }
 
     pub fn aspect(name: &str) -> Self {
@@ -331,8 +347,13 @@ impl Variable {
 
     fn add_prefix(&mut self, prefix: &str) {
         match self {
-            Self::Aircraft(name, ..) | Self::Named(name, ..) | Self::Aspect(name, ..) => {
+            Self::Aircraft(name, ..) | Self::Aspect(name, ..) => {
                 *name = format!("{}{}", prefix, name);
+            }
+            Self::Named(name, has_prefix, ..) => {
+                if *has_prefix {
+                    *name = format!("{}{}", prefix, name);
+                }
             }
         }
     }
@@ -519,7 +540,7 @@ impl VariableRegistry for MsfsVariableRegistry {
             Some(identifier) => *identifier,
             // By the time this function is called, only named variables are to be created.
             // Other variable types have been instantiated through the MsfsSimulationBuilder.
-            None => self.register(&Variable::Named(name)),
+            None => self.register(&Variable::Named(name, true)),
         }
     }
 }

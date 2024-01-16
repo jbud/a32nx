@@ -1,7 +1,6 @@
 #ifndef RTW_HEADER_A380PrimComputer_types_h_
 #define RTW_HEADER_A380PrimComputer_types_h_
 #include "rtwtypes.h"
-
 #ifndef DEFINED_TYPEDEF_FOR_a380_pitch_efcs_law_
 #define DEFINED_TYPEDEF_FOR_a380_pitch_efcs_law_
 
@@ -27,6 +26,19 @@ enum class SignStatusMatrix
   NoComputedData,
   FunctionalTest,
   NormalOperation
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_base_prim_temporary_ap_input_
+#define DEFINED_TYPEDEF_FOR_base_prim_temporary_ap_input_
+
+struct base_prim_temporary_ap_input
+{
+  boolean_T ap_engaged;
+  real_T roll_command;
+  real_T pitch_command;
+  real_T yaw_command;
 };
 
 #endif
@@ -68,8 +80,8 @@ struct base_prim_discrete_inputs
   boolean_T is_unit_3;
   boolean_T capt_priority_takeover_pressed;
   boolean_T fo_priority_takeover_pressed;
-  boolean_T ap_1_puhsbutton_pressed;
-  boolean_T ap_2_puhsbutton_pressed;
+  boolean_T ap_1_pushbutton_pressed;
+  boolean_T ap_2_pushbutton_pressed;
   boolean_T fcu_healthy;
   boolean_T athr_pushbutton;
   boolean_T ir_3_on_capt;
@@ -280,6 +292,40 @@ struct base_prim_out_bus
 
 #endif
 
+#ifndef DEFINED_TYPEDEF_FOR_base_sec_out_bus_
+#define DEFINED_TYPEDEF_FOR_base_sec_out_bus_
+
+struct base_sec_out_bus
+{
+  base_arinc_429 left_sidestick_pitch_command_deg;
+  base_arinc_429 right_sidestick_pitch_command_deg;
+  base_arinc_429 left_sidestick_roll_command_deg;
+  base_arinc_429 right_sidestick_roll_command_deg;
+  base_arinc_429 rudder_pedal_position_deg;
+  base_arinc_429 aileron_status_word;
+  base_arinc_429 left_aileron_1_position_deg;
+  base_arinc_429 left_aileron_2_position_deg;
+  base_arinc_429 right_aileron_1_position_deg;
+  base_arinc_429 right_aileron_2_position_deg;
+  base_arinc_429 spoiler_status_word;
+  base_arinc_429 left_spoiler_1_position_deg;
+  base_arinc_429 right_spoiler_1_position_deg;
+  base_arinc_429 left_spoiler_2_position_deg;
+  base_arinc_429 right_spoiler_2_position_deg;
+  base_arinc_429 elevator_status_word;
+  base_arinc_429 elevator_1_position_deg;
+  base_arinc_429 elevator_2_position_deg;
+  base_arinc_429 elevator_3_position_deg;
+  base_arinc_429 ths_position_deg;
+  base_arinc_429 rudder_status_word;
+  base_arinc_429 rudder_1_position_deg;
+  base_arinc_429 rudder_2_position_deg;
+  base_arinc_429 fctl_law_status_word;
+  base_arinc_429 misc_data_status_word;
+};
+
+#endif
+
 #ifndef DEFINED_TYPEDEF_FOR_base_prim_bus_inputs_
 #define DEFINED_TYPEDEF_FOR_base_prim_bus_inputs_
 
@@ -312,9 +358,9 @@ struct base_prim_bus_inputs
   real_T fcu_opp_bus;
   base_prim_out_bus prim_x_bus;
   base_prim_out_bus prim_y_bus;
-  real_T sec_1_bus;
-  real_T sec_2_bus;
-  real_T sec_3_bus;
+  base_sec_out_bus sec_1_bus;
+  base_sec_out_bus sec_2_bus;
+  base_sec_out_bus sec_3_bus;
 };
 
 #endif
@@ -329,6 +375,7 @@ struct prim_inputs
   base_prim_discrete_inputs discrete_inputs;
   base_prim_analog_inputs analog_inputs;
   base_prim_bus_inputs bus_inputs;
+  base_prim_temporary_ap_input temporary_ap_input;
 };
 
 #endif
@@ -667,33 +714,6 @@ struct lateral_normal_input
 
 #endif
 
-#ifndef DEFINED_TYPEDEF_FOR_base_roll_data_computed_
-#define DEFINED_TYPEDEF_FOR_base_roll_data_computed_
-
-struct base_roll_data_computed
-{
-  real_T delta_xi_deg;
-  real_T delta_zeta_deg;
-  real_T in_flight;
-  real_T in_flight_gain;
-};
-
-#endif
-
-#ifndef DEFINED_TYPEDEF_FOR_base_roll_normal_
-#define DEFINED_TYPEDEF_FOR_base_roll_normal_
-
-struct base_roll_normal
-{
-  real_T pk_c_deg_s;
-  real_T Phi_c_deg;
-  real_T xi_deg;
-  real_T zeta_deg;
-  real_T zeta_tc_yd_deg;
-};
-
-#endif
-
 #ifndef DEFINED_TYPEDEF_FOR_pitch_alternate_input_
 #define DEFINED_TYPEDEF_FOR_pitch_alternate_input_
 
@@ -731,6 +751,87 @@ struct base_pitch_output
   real_T eta_trim_dot_deg_s;
   real_T eta_trim_limit_lo;
   real_T eta_trim_limit_up;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_pitch_direct_input_
+#define DEFINED_TYPEDEF_FOR_pitch_direct_input_
+
+struct pitch_direct_input
+{
+  base_time time;
+  real_T eta_deg;
+  real_T flaps_handle_index;
+  real_T delta_eta_pos;
+  boolean_T tracking_mode_on;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_pitch_normal_input_
+#define DEFINED_TYPEDEF_FOR_pitch_normal_input_
+
+struct pitch_normal_input
+{
+  base_time time;
+  real_T nz_g;
+  real_T Theta_deg;
+  real_T Phi_deg;
+  real_T qk_deg_s;
+  real_T qk_dot_deg_s2;
+  real_T eta_deg;
+  real_T eta_trim_deg;
+  real_T alpha_deg;
+  real_T V_ias_kn;
+  real_T V_tas_kn;
+  real_T H_radio_ft;
+  real_T CG_percent_MAC;
+  real_T total_weight_kg;
+  real_T flaps_handle_index;
+  real_T spoilers_left_pos;
+  real_T spoilers_right_pos;
+  real_T thrust_lever_1_pos;
+  real_T thrust_lever_2_pos;
+  boolean_T tailstrike_protection_on;
+  real_T VLS_kn;
+  real_T delta_eta_pos;
+  boolean_T on_ground;
+  boolean_T tracking_mode_on;
+  boolean_T high_aoa_prot_active;
+  boolean_T high_speed_prot_active;
+  real_T alpha_prot;
+  real_T alpha_max;
+  real_T high_speed_prot_high_kn;
+  real_T high_speed_prot_low_kn;
+  real_T ap_theta_c_deg;
+  boolean_T any_ap_engaged;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_base_roll_data_computed_
+#define DEFINED_TYPEDEF_FOR_base_roll_data_computed_
+
+struct base_roll_data_computed
+{
+  real_T delta_xi_deg;
+  real_T delta_zeta_deg;
+  real_T in_flight;
+  real_T in_flight_gain;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_base_roll_normal_
+#define DEFINED_TYPEDEF_FOR_base_roll_normal_
+
+struct base_roll_normal
+{
+  real_T pk_c_deg_s;
+  real_T Phi_c_deg;
+  real_T xi_deg;
+  real_T zeta_deg;
 };
 
 #endif
@@ -788,61 +889,6 @@ struct base_pitch_law_output
 struct base_pitch_integrated
 {
   real_T eta_deg;
-};
-
-#endif
-
-#ifndef DEFINED_TYPEDEF_FOR_pitch_direct_input_
-#define DEFINED_TYPEDEF_FOR_pitch_direct_input_
-
-struct pitch_direct_input
-{
-  base_time time;
-  real_T eta_deg;
-  real_T flaps_handle_index;
-  real_T delta_eta_pos;
-  boolean_T tracking_mode_on;
-};
-
-#endif
-
-#ifndef DEFINED_TYPEDEF_FOR_pitch_normal_input_
-#define DEFINED_TYPEDEF_FOR_pitch_normal_input_
-
-struct pitch_normal_input
-{
-  base_time time;
-  real_T nz_g;
-  real_T Theta_deg;
-  real_T Phi_deg;
-  real_T qk_deg_s;
-  real_T qk_dot_deg_s2;
-  real_T eta_deg;
-  real_T eta_trim_deg;
-  real_T alpha_deg;
-  real_T V_ias_kn;
-  real_T V_tas_kn;
-  real_T H_radio_ft;
-  real_T CG_percent_MAC;
-  real_T total_weight_kg;
-  real_T flaps_handle_index;
-  real_T spoilers_left_pos;
-  real_T spoilers_right_pos;
-  real_T thrust_lever_1_pos;
-  real_T thrust_lever_2_pos;
-  boolean_T tailstrike_protection_on;
-  real_T VLS_kn;
-  real_T delta_eta_pos;
-  boolean_T on_ground;
-  boolean_T tracking_mode_on;
-  boolean_T high_aoa_prot_active;
-  boolean_T high_speed_prot_active;
-  real_T alpha_prot;
-  real_T alpha_max;
-  real_T high_speed_prot_high_kn;
-  real_T high_speed_prot_low_kn;
-  real_T ap_theta_c_deg;
-  boolean_T any_ap_engaged;
 };
 
 #endif

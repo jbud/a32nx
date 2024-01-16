@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0
 
-import { MathUtils } from '@shared/MathUtils';
+import { Constants, MathUtils, TurnDirection } from '@flybywiresim/fbw-sdk';
 import { CALeg } from '@fmgc/guidance/lnav/legs/CA';
 import { CILeg } from '@fmgc/guidance/lnav/legs/CI';
 import { DFLeg } from '@fmgc/guidance/lnav/legs/DF';
@@ -13,11 +13,9 @@ import { Transition } from '@fmgc/guidance/lnav/Transition';
 import { GuidanceParameters } from '@fmgc/guidance/ControlLaws';
 import { Coordinates } from '@fmgc/flightplanning/data/geo';
 import { Geo } from '@fmgc/utils/Geo';
-import { PathVector, PathVectorType } from '@fmgc/guidance/lnav/PathVector';
+import { PathVector, pathVectorLength, PathVectorType } from '@fmgc/guidance/lnav/PathVector';
 import { CourseChange } from '@fmgc/guidance/lnav/transitions/utilss/CourseChange';
-import { Constants } from '@shared/Constants';
 import { LnavConfig } from '@fmgc/guidance/LnavConfig';
-import { TurnDirection } from '@fmgc/types/fstypes/FSEnums';
 import {
     arcLength,
     getIntermediatePoint,
@@ -482,5 +480,29 @@ export class PathCaptureTransition extends Transition {
 
     get repr(): string {
         return `PATH CAPTURE(${this.previousLeg.repr} TO ${this.nextLeg.repr})`;
+    }
+
+    // This is for VNAV to estimate the amount of track miles left
+    // TODO: I'm not sure this is really used IRL. I think it does it through the direct distance to fix and TAE.
+    getActualDistanceToGo(ppos: LatLongData, trueTrack: number): NauticalMiles {
+        let dtg = 0;
+
+        for (const path of this.predictedPath) {
+            if (path.type === PathVectorType.Arc) {
+                // Arc
+                const turnSign = this.computedTurnDirection === TurnDirection.Left ? -1 : 1;
+                let trackAngleError = this.computedTargetTrack - trueTrack;
+                if (turnSign !== Math.sign(trackAngleError)) {
+                    trackAngleError += turnSign * 360;
+                }
+
+                dtg += pathVectorLength(path) * trackAngleError / path.sweepAngle;
+            } else if (path.type === PathVectorType.Line) {
+                // Line
+                dtg += Math.min(pathVectorLength(path), distanceTo(path.endPoint, ppos));
+            }
+        }
+
+        return dtg;
     }
 }

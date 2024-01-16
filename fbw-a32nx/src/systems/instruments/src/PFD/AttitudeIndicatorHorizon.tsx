@@ -1,7 +1,11 @@
-import { ClockEvents, DisplayComponent, EventBus, FSComponent, Subject, Subscribable, VNode } from 'msfssdk';
-import { Arinc429Word } from '@shared/arinc429';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
 
-import { DisplayManagementComputerEvents } from 'instruments/src/PFD/shared/DisplayManagementComputer';
+import { ClockEvents, ConsumerSubject, DisplayComponent, FSComponent, MappedSubject, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { ArincEventBus, Arinc429Register, Arinc429Word, Arinc429WordData, Arinc429RegisterSubject, Arinc429ConsumerSubject } from '@flybywiresim/fbw-sdk';
+
+import { DmcLogicEvents } from '../MsfsAvionicsCommon/providers/DmcPublisher';
 import {
     calculateHorizonOffsetFromPitch,
     calculateVerticalOffsetFromRoll,
@@ -17,69 +21,55 @@ const DisplayRange = 35;
 const DistanceSpacing = 15;
 const ValueSpacing = 10;
 
-class HeadingBug extends DisplayComponent<{bus: EventBus, isCaptainSide: boolean, yOffset: Subscribable<number>}> {
+class HeadingBug extends DisplayComponent<{ bus: ArincEventBus, isCaptainSide: boolean, yOffset: Subscribable<number> }> {
     private isActive = false;
 
-    private selectedHeading = 0;
+    private selectedHeading = Subject.create(0);
 
-    private heading = new Arinc429Word(0);
+    private heading = Arinc429ConsumerSubject.create(null);
+
+    private attitude = Arinc429ConsumerSubject.create(null);
+
+    private fdActive = ConsumerSubject.create(null, true);
 
     private horizonHeadingBug = FSComponent.createRef<SVGGElement>();
 
-    private yOffset = 0;
-
-    private calculateAndSetOffset() {
-        const headingDelta = getSmallestAngle(this.selectedHeading, this.heading.value);
-
+    private readonly visibilitySub = MappedSubject.create(([heading, attitude, fdActive, selectedHeading]) => {
+        const headingDelta = getSmallestAngle(selectedHeading, heading.value);
         const offset = headingDelta * DistanceSpacing / ValueSpacing;
+        const inRange = Math.abs(offset) <= DisplayRange + 10;
+        return !fdActive && attitude.isNormalOperation() && heading.isNormalOperation() && inRange;
+    }, this.heading, this.attitude, this.fdActive, this.selectedHeading);
 
-        if (Math.abs(offset) <= DisplayRange + 10) {
-            this.horizonHeadingBug.instance.classList.remove('HiddenElement');
-            this.horizonHeadingBug.instance.style.transform = `translate3d(${offset}px, ${this.yOffset}px, 0px)`;
-        } else {
-            this.horizonHeadingBug.instance.classList.add('HiddenElement');
+    private readonly headingBugSubject = MappedSubject.create(([heading, selectedHeading, yOffset, visible]) => {
+        if (visible) {
+            const headingDelta = getSmallestAngle(selectedHeading, heading.value);
+
+            const offset = headingDelta * DistanceSpacing / ValueSpacing;
+
+            return `transform: translate3d(${offset}px, ${yOffset}px, 0px)`;
         }
-    }
+        return '';
+    }, this.heading, this.selectedHeading, this.props.yOffset, this.visibilitySub)
 
     onAfterRender(node: VNode): void {
         super.onAfterRender(node);
 
-        const sub = this.props.bus.getSubscriber<DisplayManagementComputerEvents & PFDSimvars & Arinc429Values>();
+        const sub = this.props.bus.getArincSubscriber<DmcLogicEvents & PFDSimvars & Arinc429Values>();
+
+        this.heading.setConsumer(sub.on('heading').withArinc429Precision(2));
 
         sub.on('selectedHeading').whenChanged().handle((s) => {
-            this.selectedHeading = s;
-            if (this.isActive) {
-                this.calculateAndSetOffset();
-            }
+            this.selectedHeading.set(s);
         });
 
-        sub.on('heading').handle((h) => {
-            this.heading = h;
-            if (this.isActive) {
-                this.calculateAndSetOffset();
-            }
-        });
-
-        sub.on(this.props.isCaptainSide ? 'fd1Active' : 'fd2Active').whenChanged().handle((fd) => {
-            this.isActive = !fd;
-            if (this.isActive) {
-                this.horizonHeadingBug.instance.classList.remove('HiddenElement');
-            } else {
-                this.horizonHeadingBug.instance.classList.add('HiddenElement');
-            }
-        });
-
-        this.props.yOffset.sub((yOffset) => {
-            this.yOffset = yOffset;
-            if (this.isActive) {
-                this.calculateAndSetOffset();
-            }
-        });
+        this.attitude.setConsumer(sub.on('pitchAr'));
+        this.fdActive.setConsumer(sub.on(this.props.isCaptainSide ? 'fd1Active' : 'fd2Active').whenChanged());
     }
 
     render(): VNode {
         return (
-            <g ref={this.horizonHeadingBug} id="HorizonHeadingBug">
+            <g ref={this.horizonHeadingBug} id="HorizonHeadingBug" style={this.headingBugSubject} visibility={this.visibilitySub.map((v) => (v ? 'inherit' : 'hidden'))}>
                 <path class="ThickOutline" d="m68.906 80.823v-9.0213" />
                 <path class="ThickStroke Cyan" d="m68.906 80.823v-9.0213" />
             </g>
@@ -88,7 +78,7 @@ class HeadingBug extends DisplayComponent<{bus: EventBus, isCaptainSide: boolean
 }
 
 interface HorizonProps {
-    bus: EventBus;
+    bus: ArincEventBus;
     instrument: BaseInstrument;
     isAttExcessive: Subscribable<boolean>;
     filteredRadioAlt: Subscribable<number>;
@@ -99,42 +89,34 @@ export class Horizon extends DisplayComponent<HorizonProps> {
 
     private rollGroupRef = FSComponent.createRef<SVGGElement>();
 
-    private pitchProtSymbolUpper = FSComponent.createRef<SVGGElement>();
+    private pitchProtActiveVisibility = Subject.create('visible');
 
-    private pitchProtSymbolLower = FSComponent.createRef<SVGGElement>();
-
-    private pitchProtLostSymbolUpper = FSComponent.createRef<SVGGElement>();
-
-    private pitchProtLostSymbolLower = FSComponent.createRef<SVGGElement>();
+    private pitchProtLostVisibility = Subject.create('hidden');
 
     private yOffset = Subject.create(0);
 
     onAfterRender(node: VNode): void {
         super.onAfterRender(node);
 
-        const apfd = this.props.bus.getSubscriber<Arinc429Values>();
+        const apfd = this.props.bus.getArincSubscriber<Arinc429Values>();
 
         apfd.on('pitchAr').withArinc429Precision(3).handle((pitch) => {
-            const multiplier = 1000;
-            const currentValueAtPrecision = Math.round(pitch.value * multiplier) / multiplier;
             if (pitch.isNormalOperation()) {
                 this.pitchGroupRef.instance.style.display = 'block';
 
-                this.pitchGroupRef.instance.style.transform = `translate3d(0px, ${calculateHorizonOffsetFromPitch(currentValueAtPrecision)}px, 0px)`;
+                this.pitchGroupRef.instance.style.transform = `translate3d(0px, ${calculateHorizonOffsetFromPitch(pitch.value)}px, 0px)`;
             } else {
                 this.pitchGroupRef.instance.style.display = 'none';
             }
-            const yOffset = Math.max(Math.min(calculateHorizonOffsetFromPitch(currentValueAtPrecision), 31.563), -31.563);
+            const yOffset = Math.max(Math.min(calculateHorizonOffsetFromPitch(pitch.value), 31.563), -31.563);
             this.yOffset.set(yOffset);
         });
 
         apfd.on('rollAr').withArinc429Precision(2).handle((roll) => {
-            const multiplier = 100;
-            const currentValueAtPrecision = Math.round(roll.value * multiplier) / multiplier;
             if (roll.isNormalOperation()) {
                 this.rollGroupRef.instance.style.display = 'block';
 
-                this.rollGroupRef.instance.setAttribute('transform', `rotate(${-currentValueAtPrecision} 68.814 80.730)`);
+                this.rollGroupRef.instance.setAttribute('transform', `rotate(${-roll.value} 68.814 80.730)`);
             } else {
                 this.rollGroupRef.instance.style.display = 'none';
             }
@@ -143,11 +125,8 @@ export class Horizon extends DisplayComponent<HorizonProps> {
         apfd.on('fcdcDiscreteWord1').handle((fcdcWord1) => {
             const isNormalLawActive = fcdcWord1.getBitValue(11) && !fcdcWord1.isFailureWarning();
 
-            this.pitchProtSymbolLower.instance.style.display = isNormalLawActive ? 'block' : 'none';
-            this.pitchProtSymbolUpper.instance.style.display = isNormalLawActive ? 'block' : 'none';
-
-            this.pitchProtLostSymbolLower.instance.style.display = !isNormalLawActive ? 'block' : 'none';
-            this.pitchProtLostSymbolUpper.instance.style.display = !isNormalLawActive ? 'block' : 'none';
+            this.pitchProtActiveVisibility.set(isNormalLawActive ? 'visible' : 'hidden');
+            this.pitchProtLostVisibility.set(!isNormalLawActive ? 'visible' : 'hidden');
         });
     }
 
@@ -187,19 +166,19 @@ export class Horizon extends DisplayComponent<HorizonProps> {
                         <path d="m47.906-19.177h42h0" />
                     </g>
 
-                    <g id="PitchProtUpper" ref={this.pitchProtSymbolUpper} style="display: none" class="NormalStroke Green">
+                    <g id="PitchProtUpper" visibility={this.pitchProtActiveVisibility} class="NormalStroke Green">
                         <path d="m51.506 31.523h4m-4-1.4h4" />
                         <path d="m86.306 31.523h-4m4-1.4h-4" />
                     </g>
-                    <g id="PitchProtLostUpper" ref={this.pitchProtLostSymbolUpper} style="display: none" class="NormalStroke Amber">
+                    <g id="PitchProtLostUpper" visibility={this.pitchProtLostVisibility} class="NormalStroke Amber">
                         <path d="m52.699 30.116 1.4142 1.4142m-1.4142 0 1.4142-1.4142" />
                         <path d="m85.114 31.53-1.4142-1.4142m1.4142 0-1.4142 1.4142" />
                     </g>
-                    <g id="PitchProtLower" ref={this.pitchProtSymbolLower} style="display: none" class="NormalStroke Green">
+                    <g id="PitchProtLower" visibility={this.pitchProtActiveVisibility} class="NormalStroke Green">
                         <path d="m59.946 104.52h4m-4-1.4h4" />
                         <path d="m77.867 104.52h-4m4-1.4h-4" />
                     </g>
-                    <g id="PitchProtLostLower" ref={this.pitchProtLostSymbolLower} style="display: none" class="NormalStroke Amber">
+                    <g id="PitchProtLostLower" visibility={this.pitchProtLostVisibility} class="NormalStroke Amber">
                         <path d="m61.199 103.12 1.4142 1.4142m-1.4142 0 1.4142-1.4142" />
                         <path d="m76.614 104.53-1.4142-1.4142m1.4142 0-1.4142 1.4142" />
                     </g>
@@ -259,7 +238,7 @@ export class Horizon extends DisplayComponent<HorizonProps> {
     }
 }
 
-class TailstrikeIndicator extends DisplayComponent<{bus: EventBus}> {
+class TailstrikeIndicator extends DisplayComponent<{ bus: ArincEventBus }> {
     private tailStrike = FSComponent.createRef<SVGPathElement>();
 
     private needsUpdate = false;
@@ -316,20 +295,20 @@ class TailstrikeIndicator extends DisplayComponent<{bus: EventBus}> {
     }
 }
 
-class RadioAltAndDH extends DisplayComponent<{ bus: EventBus, filteredRadioAltitude: Subscribable<number>, attExcessive: Subscribable<boolean> }> {
+class RadioAltAndDH extends DisplayComponent<{ bus: ArincEventBus, filteredRadioAltitude: Subscribable<number>, attExcessive: Subscribable<boolean> }> {
     private daRaGroup = FSComponent.createRef<SVGGElement>();
 
     private roll = new Arinc429Word(0);
 
-    private dh = 0;
+    private readonly dh = Arinc429RegisterSubject.createEmpty();
 
     private filteredRadioAltitude = 0;
 
     private radioAltitude = new Arinc429Word(0);
 
-    private transAlt = 0;
+    private transAltAr = Arinc429Register.empty();
 
-    private transAltAppr = 0;
+    private transLvlAr = Arinc429Register.empty();
 
     private fmgcFlightPhase = 0;
 
@@ -346,22 +325,18 @@ class RadioAltAndDH extends DisplayComponent<{ bus: EventBus, filteredRadioAltit
     onAfterRender(node: VNode): void {
         super.onAfterRender(node);
 
-        const sub = this.props.bus.getSubscriber<PFDSimvars & Arinc429Values>();
+        const sub = this.props.bus.getArincSubscriber<PFDSimvars & Arinc429Values>();
 
         sub.on('rollAr').handle((roll) => {
             this.roll = roll;
         });
 
-        sub.on('dh').whenChanged().handle((dh) => {
-            this.dh = dh;
+        sub.on('fmTransAltRaw').whenChanged().handle((ta) => {
+            this.transAltAr.set(ta);
         });
 
-        sub.on('transAlt').whenChanged().handle((ta) => {
-            this.transAlt = ta;
-        });
-
-        sub.on('transAltAppr').whenChanged().handle((ta) => {
-            this.transAltAppr = ta;
+        sub.on('fmTransLvlRaw').whenChanged().handle((tl) => {
+            this.transLvlAr.set(tl);
         });
 
         sub.on('fmgcFlightPhase').whenChanged().handle((fp) => {
@@ -379,10 +354,13 @@ class RadioAltAndDH extends DisplayComponent<{ bus: EventBus, filteredRadioAltit
                 const raHasData = !this.radioAltitude.isNoComputedData();
                 const raValue = this.filteredRadioAltitude;
                 const verticalOffset = calculateVerticalOffsetFromRoll(this.roll.value);
-                const chosenTransalt = this.fmgcFlightPhase <= 3 ? this.transAlt : this.transAltAppr;
-                const belowTransitionAltitude = chosenTransalt !== 0 && (!this.altitude.isNoComputedData() && !this.altitude.isNoComputedData()) && this.altitude.value < chosenTransalt;
+                const useTransAltVsLvl = this.fmgcFlightPhase <= 3;
+                const chosenTransalt = useTransAltVsLvl ? this.transAltAr : this.transLvlAr;
+                const belowTransitionAltitude = chosenTransalt.isNormalOperation() && !this.altitude.isNoComputedData()
+                    && this.altitude.value < (useTransAltVsLvl ? chosenTransalt.value : chosenTransalt.value * 100);
                 let size = 'FontLarge';
-                const DHValid = this.dh >= 0;
+                const dh = this.dh.get();
+                const DHValid = dh.value >= 0 && (!dh.isNoComputedData() && !dh.isFailureWarning());
 
                 let text = '';
                 let color = 'Amber';
@@ -390,7 +368,7 @@ class RadioAltAndDH extends DisplayComponent<{ bus: EventBus, filteredRadioAltit
                 if (raHasData) {
                     if (raFailed) {
                         if (raValue < 2500) {
-                            if (raValue > 400 || (raValue > this.dh + 100 && DHValid)) {
+                            if (raValue > 400 || (raValue > dh.value + 100 && DHValid)) {
                                 color = 'Green';
                             }
                             if (raValue < 400) {
@@ -400,7 +378,7 @@ class RadioAltAndDH extends DisplayComponent<{ bus: EventBus, filteredRadioAltit
                                 text = Math.round(raValue).toString();
                             } else if (raValue <= 50) {
                                 text = (Math.round(raValue / 5) * 5).toString();
-                            } else if (raValue > 50 || (raValue > this.dh + 100 && DHValid)) {
+                            } else if (raValue > 50 || (raValue > dh.value + 100 && DHValid)) {
                                 text = (Math.round(raValue / 10) * 10).toString();
                             }
                         }
@@ -411,7 +389,7 @@ class RadioAltAndDH extends DisplayComponent<{ bus: EventBus, filteredRadioAltit
                 }
 
                 this.daRaGroup.instance.style.transform = `translate3d(0px, ${-verticalOffset}px, 0px)`;
-                if (raFailed && DHValid && raValue <= this.dh) {
+                if (raFailed && DHValid && raValue <= dh.value) {
                     this.attDhText.instance.style.visibility = 'visible';
                 } else {
                     this.attDhText.instance.style.visibility = 'hidden';
@@ -432,6 +410,8 @@ class RadioAltAndDH extends DisplayComponent<{ bus: EventBus, filteredRadioAltit
                 this.radioAlt.instance.style.visibility = 'visible';
             }
         });
+
+        sub.on('fmDhRaw').handle(this.dh.setWord.bind(this.dh));
     }
 
     render(): VNode {
@@ -453,7 +433,7 @@ class RadioAltAndDH extends DisplayComponent<{ bus: EventBus, filteredRadioAltit
 }
 
 interface SideslipIndicatorProps {
-    bus: EventBus;
+    bus: ArincEventBus;
     instrument: BaseInstrument;
 }
 
@@ -491,7 +471,7 @@ class SideslipIndicator extends DisplayComponent<SideslipIndicatorProps> {
     onAfterRender(node: VNode): void {
         super.onAfterRender(node);
 
-        const sub = this.props.bus.getSubscriber<PFDSimvars & Arinc429Values & ClockEvents>();
+        const sub = this.props.bus.getArincSubscriber<PFDSimvars & Arinc429Values & ClockEvents>();
 
         sub.on('leftMainGearCompressed').whenChanged().handle((og) => {
             this.leftMainGearCompressed = og;
@@ -581,10 +561,10 @@ class SideslipIndicator extends DisplayComponent<SideslipIndicatorProps> {
     }
 }
 
-class RisingGround extends DisplayComponent<{ bus: EventBus, filteredRadioAltitude: Subscribable<number> }> {
-    private radioAlt = new Arinc429Word(0);
+class RisingGround extends DisplayComponent<{ bus: ArincEventBus, filteredRadioAltitude: Subscribable<number> }> {
+    private radioAlt: Arinc429WordData = new Arinc429Word(0);
 
-    private lastPitch = new Arinc429Word(0);
+    private lastPitch: Arinc429WordData = new Arinc429Word(0);
 
     private horizonGroundRectangle = FSComponent.createRef<SVGGElement>();
 

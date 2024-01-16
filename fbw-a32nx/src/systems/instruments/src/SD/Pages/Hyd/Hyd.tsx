@@ -1,5 +1,9 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 import React, { useEffect, useState } from 'react';
-import { useSimVar } from '@instruments/common/simVars';
+import { useSimVar } from '@flybywiresim/fbw-sdk';
 import { SvgGroup } from '../../Common/SvgGroup';
 import { Triangle } from '../../Common/Shapes';
 
@@ -133,7 +137,7 @@ type RATProps = {
 }
 
 const RAT = ({ x, y }: RATProps) => {
-    const [RatStowed] = useSimVar('L:A32NX_HYD_RAT_STOW_POSITION', 'percent over 100', 500);
+    const [RatStowed] = useSimVar('L:A32NX_RAT_STOW_POSITION', 'percent over 100', 500);
 
     return (
         <SvgGroup x={x} y={y}>

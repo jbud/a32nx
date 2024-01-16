@@ -1,16 +1,19 @@
 // Copyright (c) 2022 FlyByWire Simulations
 // SPDX-License-Identifier: GPL-3.0
 
-import { NXDataStore } from '@shared/persistence';
+import { NXDataStore } from '@flybywiresim/fbw-sdk';
 import { ClientState, SimBridgeClientState } from './ClientState';
+import { getSimBridgeIp } from '../common';
 
 /**
  * Class to communicate with the SimBridge MCDU server
  */
 export class McduServerClient {
+    public static ip = ():string => getSimBridgeIp();
+
     public static port = ():string => NXDataStore.get('CONFIG_SIMBRIDGE_PORT', '8380');
 
-    public static url = ():string => `ws://127.0.0.1:${this.port()}/interfaces/v1/mcdu`.replace(/\s+/g, '');
+    public static url = ():string => `ws://${this.ip()}:${this.port()}/interfaces/v1/mcdu`.replace(/\s+/g, '');
 
     private state: ClientState = ClientState.getInstance();
 

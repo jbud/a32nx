@@ -1,5 +1,9 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 import React from 'react';
-import { useSimVar } from '../../Common/simVars';
+import { useSimVar } from '@flybywiresim/fbw-sdk';
 
 interface Props {
     /**
@@ -34,10 +38,11 @@ const formatFrequency = (frequency: number): string => {
  */
 export function RadioPanelDisplay(props: Props) {
     const [lightsTest] = useSimVar('L:A32NX_OVHD_INTLT_ANN', 'Boolean', 1000);
+    const [dc2IsPowered] = useSimVar('L:A32NX_ELEC_DC_2_BUS_IS_POWERED', 'Bool', 1000);
 
     let content: JSX.Element;
 
-    if (lightsTest === 0) {
+    if (lightsTest === 0 && dc2IsPowered) {
         content = (
             <text x="100%" y="52%">
                 8.8.8.8.8.8

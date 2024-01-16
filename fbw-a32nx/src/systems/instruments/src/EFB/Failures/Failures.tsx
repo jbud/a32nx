@@ -1,5 +1,9 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 import React from 'react';
-import { AtaChaptersTitle } from '@shared/ata';
+import { AtaChaptersTitle } from '@flybywiresim/fbw-sdk';
 import { Route } from 'react-router-dom';
 import { InfoCircleFill } from 'react-bootstrap-icons';
 import { t } from '../translation';
@@ -44,7 +48,7 @@ export const Failures = () => {
             <div className="flex flex-row justify-between space-x-4">
                 <h1 className="font-bold">{t('Failures.Title')}</h1>
 
-                <div className="flex flex-row items-center py-1 px-4 space-x-2 rounded-md bg-colors-yellow-400">
+                <div className="flex flex-row items-center py-1 px-4 space-x-2 bg-yellow-400 rounded-md">
                     <InfoCircleFill className="text-black" />
                     <p className="text-black">{t('Failures.FullSimulationOfTheFailuresBelowIsntYetGuaranteed')}</p>
                 </div>

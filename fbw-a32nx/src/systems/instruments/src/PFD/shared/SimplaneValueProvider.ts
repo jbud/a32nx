@@ -1,4 +1,11 @@
-import { EventBus, Publisher } from 'msfssdk';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
+import { Publisher } from '@microsoft/msfs-sdk';
+import { ArincEventBus } from '@flybywiresim/fbw-sdk';
+
+export type SimplaneBaroMode = 'QNH' | 'QFE' | 'STD';
 
 export interface SimplaneValues {
     units: string;
@@ -8,13 +15,13 @@ export interface SimplaneValues {
     airSpeedHoldValue: number;
     isSelectedSpeed: boolean;
     selectedAltitude: number;
-    baroMode: 'QNH' | 'QFE' | 'STD';
+    baroMode: SimplaneBaroMode;
 
 }
 export class SimplaneValueProvider {
     private publisher: Publisher<SimplaneValues>;
 
-    constructor(private readonly bus: EventBus) {
+    constructor(private readonly bus: ArincEventBus) {
         this.publisher = this.bus.getPublisher<SimplaneValues>();
     }
 

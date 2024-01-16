@@ -16,9 +16,14 @@ pub struct PumpCharacteristics {
     air_pressure_map_breakpoints_psi: [f64; 9],
     cavitation_map_ratio: [f64; 9],
 
+    // Speed under which pump has no output
+    zero_efficiency_speed_threshold: AngularVelocity,
+
     regulated_speed: Option<AngularVelocity>,
 }
 impl PumpCharacteristics {
+    const DEFAULT_ZERO_EFFICIENCY_SPEED_THRESHOLD_RPM: f64 = 75.;
+
     const AIR_PRESSURE_BREAKPTS_PSI: [f64; 9] = [0., 5., 10., 15., 20., 30., 50., 70., 100.];
     const AIR_PRESSURE_CARAC_RATIO: [f64; 9] = [0.0, 0.1, 0.6, 0.8, 0.9, 1., 1., 1., 1.];
 
@@ -55,6 +60,15 @@ impl PumpCharacteristics {
     const A380_EPUMP_DISPLACEMENT_MAP_CUBIC_INCH: [f64; 9] =
         [0.294525, 0.28875, 0.2858625, 0.231, 0.17325, 0., 0., 0., 0.];
 
+    const A380_AUX_PUMP_NOMINAL_SPEED_RPM: f64 = 1200.0;
+
+    const A380_AUX_EPUMP_DISPLACEMENT_BREAKPTS_PSI: [f64; 9] =
+        [0., 50., 3000., 4000., 4980., 5100., 5200., 5300., 5350.];
+
+    // Real pump has max flow of 0.3gpm @ 1200rpm
+    const A380_AUX_EPUMP_DISPLACEMENT_MAP_CUBIC_INCH: [f64; 9] =
+        [0.06, 0.06, 0.06, 0.06, 0.06, 0., 0., 0., 0.];
+
     fn new(
         pressure_map_breakpoints_psi: [f64; 9],
         displacement_map_cubic_inch: [f64; 9],
@@ -70,6 +84,10 @@ impl PumpCharacteristics {
 
             air_pressure_map_breakpoints_psi,
             cavitation_map_ratio,
+
+            zero_efficiency_speed_threshold: AngularVelocity::new::<revolution_per_minute>(
+                Self::DEFAULT_ZERO_EFFICIENCY_SPEED_THRESHOLD_RPM,
+            ),
 
             regulated_speed,
         }
@@ -119,6 +137,18 @@ impl PumpCharacteristics {
         )
     }
 
+    pub fn a380_aux_pump() -> Self {
+        PumpCharacteristics::new(
+            Self::A380_AUX_EPUMP_DISPLACEMENT_BREAKPTS_PSI,
+            Self::A380_AUX_EPUMP_DISPLACEMENT_MAP_CUBIC_INCH,
+            Self::AIR_PRESSURE_BREAKPTS_PSI,
+            Self::AIR_PRESSURE_CARAC_RATIO,
+            Some(AngularVelocity::new::<revolution_per_minute>(
+                Self::A380_AUX_PUMP_NOMINAL_SPEED_RPM,
+            )),
+        )
+    }
+
     pub fn a380_edp() -> Self {
         PumpCharacteristics::new(
             Self::A380_EDP_DISPLACEMENT_BREAKPTS_PSI,
@@ -150,5 +180,9 @@ impl PumpCharacteristics {
 
     pub fn regulated_speed(&self) -> AngularVelocity {
         self.regulated_speed.unwrap_or_default()
+    }
+
+    pub fn min_speed_for_non_zero_efficiency(&self) -> AngularVelocity {
+        self.zero_efficiency_speed_threshold
     }
 }

@@ -1,6 +1,8 @@
-import { usePersistentProperty } from '@instruments/common/persistence';
-import { useSimVar } from '@instruments/common/simVars';
-import { Units } from '@shared/units';
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
+import { usePersistentProperty, useSimVar, Units } from '@flybywiresim/fbw-sdk';
 import React, { useEffect, useRef, useState } from 'react';
 import { CanvasConst, PerformanceEnvelope, ChartLimits } from './Constants';
 
@@ -9,7 +11,7 @@ interface ChartWidgetProps {
     height: number,
     envelope: PerformanceEnvelope,
     limits: ChartLimits,
-    totalWeight: number,
+    gw: number,
     cg: number,
     mldw: number,
     mldwCg: number,
@@ -19,7 +21,7 @@ interface ChartWidgetProps {
 
 export const ChartWidget: React.FC<ChartWidgetProps> = ({
     width, height, envelope, limits,
-    totalWeight, cg,
+    gw, cg,
     mldw, mldwCg,
     zfw, zfwCg,
 }) => {
@@ -96,8 +98,8 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
                     ctx.lineWidth = cgPercent % limits.cg.highlight ? 0.25 : 1;
                     ctx.strokeStyle = cgPercent % limits.cg.highlight ? '#2B313B' : '#394049';
 
-                    const [x1, y1] = cgWeightToXY(cgPercent, 35000);
-                    const [x2, y2] = cgWeightToXY(cgPercent, 80000);
+                    const [x1, y1] = cgWeightToXY(cgPercent, limits.weight.min);
+                    const [x2, y2] = cgWeightToXY(cgPercent, limits.weight.max);
                     ctx.beginPath();
                     ctx.moveTo(x1, y1);
                     ctx.lineTo(x2, y2);
@@ -185,7 +187,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
             // MLW
             drawDiamond(mldwCg, mldw, secondary);
             // MTOW
-            drawDiamond(cg, totalWeight, primary);
+            drawDiamond(cg, gw, primary);
             // MZFW
             drawDiamond(zfwCg, zfw, base);
         };
@@ -260,9 +262,13 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
         setWeightRows(wg);
     }, []);
 
-    const cgAxis = cgRows.map((cgRow, i) => <p className="absolute top-0 font-mono font-medium text-md" style={cgRow}>{`${limits.cg.values[i]}%`}</p>);
+    const cgAxis = cgRows.map((cgRow, i) => (
+        // eslint-disable-next-line react/no-array-index-key
+        <p key={`cgRow-${i}`} className="absolute top-0 font-mono font-medium text-md" style={cgRow}>{`${limits.cg.values[i]}%`}</p>
+    ));
     const weightAxis = weightRows.map((weightRow, i) => (
-        <p className="absolute top-0 font-mono font-medium text-md" style={weightRow}>{Math.round(Units.kilogramToUser(limits.weight.values[i] * 1000) / 1000)}</p>
+        // eslint-disable-next-line react/no-array-index-key
+        <p key={`weightRow-${i}`} className="absolute top-0 font-mono font-medium text-md" style={weightRow}>{Math.round(Units.kilogramToUser(limits.weight.values[i] * 1000) / 1000)}</p>
     ));
 
     return (
@@ -270,10 +276,10 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
             <canvas ref={canvasRef} />
             {cgAxis}
             {weightAxis}
-            <p className="absolute top-0 font-mono text-sm font-medium" style={weightUnits}>{usingMetric ? 'x 1000 kgs' : 'x 1000 lbs'}</p>
-            <p className="absolute top-0 font-mono font-medium drop-shadow text-theme-highlight" style={mtow}>{flightPhase <= 1 || flightPhase >= 7 ? 'MTOW' : 'FLIGHT'}</p>
-            <p className="absolute top-0 font-mono font-medium text-colors-lime-500" style={mlw}>MLDW</p>
-            <p className="absolute top-0 font-mono font-medium text-theme-text" style={mzfw}>MZFW</p>
+            <p key="wu" className="absolute top-0 font-mono text-sm font-medium" style={weightUnits}>{usingMetric ? 'x 1000 kgs' : 'x 1000 lbs'}</p>
+            <p key="mtow" className="absolute top-0 font-mono font-medium drop-shadow text-theme-highlight" style={mtow}>{flightPhase <= 1 || flightPhase >= 7 ? 'MTOW' : 'FLIGHT'}</p>
+            <p key="mldw" className="absolute top-0 font-mono font-medium text-lime-500" style={mlw}>MLDW</p>
+            <p key="mzfw" className="absolute top-0 font-mono font-medium text-theme-text" style={mzfw}>MZFW</p>
         </div>
     );
 };

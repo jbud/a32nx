@@ -4,6 +4,7 @@
 #include <SimConnect.h>
 
 #include "AdditionalData.h"
+#include "Arinc429.h"
 #include "CalculatedRadioReceiver.h"
 #include "EngineData.h"
 #include "FlightDataRecorder.h"
@@ -20,7 +21,7 @@
 #include "model/Autothrust.h"
 // #include "fcdc/Fcdc.h"
 #include "prim/Prim.h"
-// #include "sec/Sec.h"
+#include "sec/Sec.h"
 
 #include "utils/HysteresisNode.h"
 
@@ -97,6 +98,13 @@ class FlyByWireInterface {
   bool last_ls1_active = false;
   bool last_ls2_active = false;
 
+  std::unique_ptr<Arinc429NumericWord> fmThrustReductionAltitude = std::make_unique<Arinc429NumericWord>();
+  std::unique_ptr<Arinc429NumericWord> fmThrustReductionAltitudeGoAround = std::make_unique<Arinc429NumericWord>();
+  std::unique_ptr<Arinc429NumericWord> fmAccelerationAltitude = std::make_unique<Arinc429NumericWord>();
+  std::unique_ptr<Arinc429NumericWord> fmAccelerationAltitudeEngineOut = std::make_unique<Arinc429NumericWord>();
+  std::unique_ptr<Arinc429NumericWord> fmAccelerationAltitudeGoAround = std::make_unique<Arinc429NumericWord>();
+  std::unique_ptr<Arinc429NumericWord> fmAccelerationAltitudeGoAroundEngineOut = std::make_unique<Arinc429NumericWord>();
+
   FlightDataRecorder flightDataRecorder;
 
   SimConnectInterface simConnectInterface;
@@ -131,10 +139,10 @@ class FlyByWireInterface {
   base_prim_analog_outputs primsAnalogOutputs[3] = {};
   base_prim_out_bus primsBusOutputs[3] = {};
 
-  // Sec secs[3] = {Sec(true, false), Sec(false, false), Sec(false, true)};
-  // base_sec_discrete_outputs secsDiscreteOutputs[3] = {};
-  // base_sec_analog_outputs secsAnalogOutputs[3] = {};
-  // base_sec_out_bus secsBusOutputs[3] = {};
+  Sec secs[3] = {Sec(true, false, false), Sec(false, true, false), Sec(false, false, true)};
+  base_sec_discrete_outputs secsDiscreteOutputs[3] = {};
+  base_sec_analog_outputs secsAnalogOutputs[3] = {};
+  base_sec_out_bus secsBusOutputs[3] = {};
   //
   // Fcdc fcdcs[2] = {Fcdc(true), Fcdc(false)};
   // FcdcDiscreteOutputs fcdcsDiscreteOutputs[2] = {};
@@ -552,14 +560,12 @@ class FlyByWireInterface {
   std::unique_ptr<LocalVariable> idLeftElevatorOutwardPosition;
   std::unique_ptr<LocalVariable> idRightElevatorInwardPosition;
   std::unique_ptr<LocalVariable> idRightElevatorOutwardPosition;
-  std::unique_ptr<LocalVariable> idThsPosition;
   std::unique_ptr<LocalVariable> idUpperRudderPosition;
   std::unique_ptr<LocalVariable> idLowerRudderPosition;
 
-  std::unique_ptr<LocalVariable> idElecDcBus2Powered;
-  std::unique_ptr<LocalVariable> idElecDcEssShedBusPowered;
   std::unique_ptr<LocalVariable> idElecDcEssBusPowered;
-  std::unique_ptr<LocalVariable> idElecBat1HotBusPowered;
+  std::unique_ptr<LocalVariable> idElecDcEhaBusPowered;
+  std::unique_ptr<LocalVariable> idElecDc1BusPowered;
 
   std::unique_ptr<LocalVariable> idHydYellowSystemPressure;
   std::unique_ptr<LocalVariable> idHydGreenSystemPressure;
@@ -599,7 +605,7 @@ class FlyByWireInterface {
 
   bool updatePrim(double sampleTime, int primIndex);
 
-  // bool updateSec(double sampleTime, int secIndex);
+  bool updateSec(double sampleTime, int secIndex);
 
   // bool updateFcdc(double sampleTime, int fcdcIndex);
 

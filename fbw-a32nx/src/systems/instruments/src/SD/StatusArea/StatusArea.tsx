@@ -1,11 +1,10 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 import './StatusArea.scss';
 import React, { useEffect, useState } from 'react';
-import { useGlobalVar, useSimVar } from '@instruments/common/simVars';
-import { getSupplier } from '@instruments/common/utils';
-import { useArinc429Var } from '@instruments/common/arinc429';
-import { NXLogicConfirmNode, NXLogicMemoryNode } from '@instruments/common/NXLogic';
-import { useUpdate } from '@instruments/common/hooks';
-import { NXUnits } from '@instruments/common/NXUnits';
+import { useGlobalVar, useSimVar, useArinc429Var, NXLogicConfirmNode, NXLogicMemoryNode, NXUnits, useUpdate, getSupplier } from '@flybywiresim/fbw-sdk';
 import { Text } from '../Text/Text';
 
 export const StatusArea = () => {
@@ -23,14 +22,15 @@ export const StatusArea = () => {
 
     const [isaVisible, setIsaVisible] = useState(false);
 
-    const [airDataReferenceSource, setAirDataSource] = useState(0);
-    const [inertialReferenceSource, setInertialSource] = useState(0);
+    const [airDataReferenceSource, setAirDataSource] = useState(1);
+    const [inertialReferenceSource, setInertialSource] = useState(1);
     const [loadFactorVisibleElement, setLoadFactorVisibleElement] = useState(false);
     const [loadFactorText, setLoadFactorText] = useState('');
 
     const sat = useArinc429Var(`L:A32NX_ADIRS_ADR_${airDataReferenceSource}_STATIC_AIR_TEMPERATURE`, 6000);
     const tat = useArinc429Var(`L:A32NX_ADIRS_ADR_${airDataReferenceSource}_TOTAL_AIR_TEMPERATURE`, 6000);
-    const isa = useArinc429Var(`L:A32NX_ADIRS_ADR_${airDataReferenceSource}_INTERNATIONAL_STANDARD_ATMOSPHERE_DELTA`, 6000);
+    const zp = useArinc429Var(`L:A32NX_ADIRS_ADR_${airDataReferenceSource}_ALTITUDE`, 6000);
+    const isa = sat.valueOr(0) + (Math.min(36089, zp.valueOr(0)) / 500) - 15;
     const loadFactor = useArinc429Var(`L:A32NX_ADIRS_IR_${inertialReferenceSource}_BODY_NORMAL_ACC`, 300);
 
     const [loadFactorSet] = useState(new NXLogicConfirmNode(2));
@@ -70,12 +70,13 @@ export const StatusArea = () => {
         const isInStdMode = baroMode !== 0 && baroMode !== 1;
         // As ISA relates to SAT, we cannot present ISA when SAT is unavailable. We might want to move this into
         // Rust ADIRS code itself.
-        const isaShouldBeVisible = isInStdMode && isa.isNormalOperation() && sat.isNormalOperation();
+        const isaShouldBeVisible = isInStdMode && zp.isNormalOperation() && sat.isNormalOperation();
         setIsaVisible(isaShouldBeVisible);
-    }, [isa, sat]);
+    }, [isa, sat, zp]);
 
     const satPrefix = sat.value > 0 ? '+' : '';
     const tatPrefix = tat.value > 0 ? '+' : '';
+    const isaPrefix = isa > 0 ? '+' : '';
     const seconds = Math.floor(zulu);
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds - (hours * 3600)) / 60);
@@ -112,9 +113,9 @@ export const StatusArea = () => {
         <div id="StatusArea">
             <svg viewBox="0 0 600 150" xmlns="http://www.w3.org/2000/svg">
                 <g>
-                    <path className="sd-status-line" d="M 0   40 h 600" />
-                    <path className="sd-status-line" d="M 200 40 v 125" />
-                    <path className="sd-status-line" d="M 400 40 v 125" />
+                    <path className="sd-status-line" d="M 4   40 h 592" />
+                    <path className="sd-status-line" d="M 200 40 v 75" />
+                    <path className="sd-status-line" d="M 400 40 v 75" />
 
                     {/* Temperatures */}
 
@@ -195,7 +196,10 @@ export const StatusArea = () => {
                     {isaVisible && (
                         <>
                             <Text title x={74} y={111} alignEnd>ISA</Text>
-                            <Text value x={130} y={111} alignEnd>{Math.round(isa.value)}</Text>
+                            <Text value x={130} y={111} alignEnd>
+                                {isaPrefix}
+                                {Math.round(isa)}
+                            </Text>
                             <Text unit x={150} y={111} alignStart>&#176;C</Text>
                         </>
 

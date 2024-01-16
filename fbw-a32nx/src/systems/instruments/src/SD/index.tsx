@@ -1,10 +1,13 @@
+// Copyright (c) 2021-2023 FlyByWire Simulations
+//
+// SPDX-License-Identifier: GPL-3.0
+
 import { DisplayUnit } from '@instruments/common/displayUnit';
 import React, { useEffect, useState } from 'react';
 import { render } from '@instruments/common/index';
-import { useInteractionEvent } from '@instruments/common/hooks';
+import { useInteractionEvent, useSimVar } from '@flybywiresim/fbw-sdk';
 import './style.scss';
 
-import { useSimVar } from '@instruments/common/simVars';
 import { PagesContainer } from './PagesContainer';
 import { StatusArea } from './StatusArea/StatusArea';
 
@@ -49,6 +52,7 @@ render(
     <DisplayUnit
         electricitySimvar="L:A32NX_ELEC_AC_2_BUS_IS_POWERED"
         potentiometerIndex={93}
+        normDmc={1}
     >
         <Idle />
     </DisplayUnit>,
