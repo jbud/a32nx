@@ -49,10 +49,11 @@ use systems::{
     overhead::{AutoOffFaultPushButton, AutoOnFaultPushButton},
     shared::{
         interpolation, low_pass_filter::LowPassFilter, random_from_range,
-        update_iterator::MaxStepLoop, AdirsDiscreteOutputs, DelayedFalseLogicGate,
-        DelayedPulseTrueLogicGate, DelayedTrueLogicGate, ElectricalBusType, ElectricalBuses,
-        EngineFirePushButtons, GearWheel, HydraulicColor, LandingGearHandle, LgciuInterface,
-        LgciuWeightOnWheels, ReservoirAirPressure, SectionPressure,
+        update_iterator::MaxStepLoop, AdirsDiscreteOutputs, AirbusElectricPumpId,
+        AirbusEngineDrivenPumpId, DelayedFalseLogicGate, DelayedPulseTrueLogicGate,
+        DelayedTrueLogicGate, ElectricalBusType, ElectricalBuses, EngineFirePushButtons, GearWheel,
+        HydraulicColor, LandingGearHandle, LgciuInterface, LgciuWeightOnWheels,
+        ReservoirAirPressure, SectionPressure,
     },
     simulation::{
         InitContext, Read, Reader, SimulationElement, SimulationElementVisitor, SimulatorReader,
@@ -1615,7 +1616,7 @@ impl A380Hydraulic {
 
             engine_driven_pump_1a: EngineDrivenPump::new(
                 context,
-                "GREEN_1A",
+                AirbusEngineDrivenPumpId::Edp1a,
                 PumpCharacteristics::a380_edp(),
             ),
             engine_driven_pump_1a_controller: A380EngineDrivenPumpController::new(
@@ -1626,7 +1627,7 @@ impl A380Hydraulic {
 
             engine_driven_pump_2a: EngineDrivenPump::new(
                 context,
-                "GREEN_2A",
+                AirbusEngineDrivenPumpId::Edp2a,
                 PumpCharacteristics::a380_edp(),
             ),
             engine_driven_pump_2a_controller: A380EngineDrivenPumpController::new(
@@ -1637,7 +1638,7 @@ impl A380Hydraulic {
 
             engine_driven_pump_3a: EngineDrivenPump::new(
                 context,
-                "YELLOW_3A",
+                AirbusEngineDrivenPumpId::Edp3a,
                 PumpCharacteristics::a380_edp(),
             ),
             engine_driven_pump_3a_controller: A380EngineDrivenPumpController::new(
@@ -1648,7 +1649,7 @@ impl A380Hydraulic {
 
             engine_driven_pump_4a: EngineDrivenPump::new(
                 context,
-                "YELLOW_4A",
+                AirbusEngineDrivenPumpId::Edp4a,
                 PumpCharacteristics::a380_edp(),
             ),
             engine_driven_pump_4a_controller: A380EngineDrivenPumpController::new(
@@ -1659,7 +1660,7 @@ impl A380Hydraulic {
 
             engine_driven_pump_1b: EngineDrivenPump::new(
                 context,
-                "GREEN_1B",
+                AirbusEngineDrivenPumpId::Edp1b,
                 PumpCharacteristics::a380_edp(),
             ),
             engine_driven_pump_1b_controller: A380EngineDrivenPumpController::new(
@@ -1670,7 +1671,7 @@ impl A380Hydraulic {
 
             engine_driven_pump_2b: EngineDrivenPump::new(
                 context,
-                "GREEN_2B",
+                AirbusEngineDrivenPumpId::Edp2b,
                 PumpCharacteristics::a380_edp(),
             ),
             engine_driven_pump_2b_controller: A380EngineDrivenPumpController::new(
@@ -1681,7 +1682,7 @@ impl A380Hydraulic {
 
             engine_driven_pump_3b: EngineDrivenPump::new(
                 context,
-                "YELLOW_3B",
+                AirbusEngineDrivenPumpId::Edp3b,
                 PumpCharacteristics::a380_edp(),
             ),
             engine_driven_pump_3b_controller: A380EngineDrivenPumpController::new(
@@ -1692,7 +1693,7 @@ impl A380Hydraulic {
 
             engine_driven_pump_4b: EngineDrivenPump::new(
                 context,
-                "YELLOW_4B",
+                AirbusEngineDrivenPumpId::Edp4b,
                 PumpCharacteristics::a380_edp(),
             ),
             engine_driven_pump_4b_controller: A380EngineDrivenPumpController::new(
@@ -1703,7 +1704,7 @@ impl A380Hydraulic {
 
             yellow_electric_pump_a: ElectricPump::new(
                 context,
-                "YELLOW_A",
+                AirbusElectricPumpId::YellowA,
                 Self::YELLOW_ELEC_PUMP_SUPPLY_POWER_BUS,
                 ElectricCurrent::new::<ampere>(Self::ELECTRIC_PUMP_MAX_CURRENT_AMPERE),
                 PumpCharacteristics::a380_electric_pump(),
@@ -1717,7 +1718,7 @@ impl A380Hydraulic {
 
             yellow_electric_pump_b: ElectricPump::new(
                 context,
-                "YELLOW_B",
+                AirbusElectricPumpId::YellowB,
                 Self::YELLOW_ELEC_PUMP_SUPPLY_POWER_BUS,
                 ElectricCurrent::new::<ampere>(Self::ELECTRIC_PUMP_MAX_CURRENT_AMPERE),
                 PumpCharacteristics::a380_electric_pump(),
@@ -1731,7 +1732,7 @@ impl A380Hydraulic {
 
             green_electric_pump_a: ElectricPump::new(
                 context,
-                "GREEN_A",
+                AirbusElectricPumpId::GreenA,
                 Self::YELLOW_ELEC_PUMP_SUPPLY_POWER_BUS,
                 ElectricCurrent::new::<ampere>(Self::ELECTRIC_PUMP_MAX_CURRENT_AMPERE),
                 PumpCharacteristics::a380_electric_pump(),
@@ -1745,7 +1746,7 @@ impl A380Hydraulic {
 
             green_electric_pump_b: ElectricPump::new(
                 context,
-                "GREEN_B",
+                AirbusElectricPumpId::GreenB,
                 Self::YELLOW_ELEC_PUMP_SUPPLY_POWER_BUS,
                 ElectricCurrent::new::<ampere>(Self::ELECTRIC_PUMP_MAX_CURRENT_AMPERE),
                 PumpCharacteristics::a380_electric_pump(),
@@ -1889,14 +1890,7 @@ impl A380Hydraulic {
         );
 
         for cur_time_step in self.core_hydraulic_updater {
-            self.update_fast_physics(
-                &context.with_delta(cur_time_step),
-                lgcius.lgciu1(),
-                lgcius.lgciu2(),
-                adirs,
-            );
-
-            self.update_ultra_fast_physics(&context.with_delta(cur_time_step), lgcius);
+            self.update_physics(&context.with_delta(cur_time_step), lgcius, adirs);
 
             self.update_core_hydraulics(
                 &context.with_delta(cur_time_step),
@@ -1956,11 +1950,45 @@ impl A380Hydraulic {
         self.yellow_circuit.system_section_pressure_switch() == PressureSwitchState::Pressurised
     }
 
-    fn update_ultra_fast_physics(
+    fn update_physics(
         &mut self,
         context: &UpdateContext,
         lgcius: &LandingGearControlInterfaceUnitSet,
+        adirs: &impl AdirsDiscreteOutputs,
     ) {
+        self.forward_cargo_door.update(
+            context,
+            &self.forward_cargo_door_controller,
+            self.green_circuit.auxiliary_section(),
+        );
+
+        self.aft_cargo_door.update(
+            context,
+            &self.aft_cargo_door_controller,
+            self.green_circuit.auxiliary_section(),
+        );
+
+        self.gear_system_hydraulic_controller.update(
+            adirs,
+            lgcius.lgciu1(),
+            lgcius.lgciu2(),
+            &self.gear_system_gravity_extension_controller,
+        );
+
+        self.trim_assembly.update(
+            context,
+            &self.trim_controller,
+            &self.trim_controller,
+            [
+                self.green_circuit
+                    .system_section()
+                    .pressure_downstream_leak_valve(),
+                self.yellow_circuit
+                    .system_section()
+                    .pressure_downstream_leak_valve(),
+            ],
+        );
+
         self.left_aileron.update(
             context,
             [
@@ -2076,48 +2104,6 @@ impl A380Hydraulic {
             &self.gear_system_hydraulic_controller,
             lgcius.active_lgciu(),
             self.green_circuit.system_section(),
-        );
-    }
-
-    // Updates at the same rate as the sim or at a fixed maximum time step if sim rate is too slow
-    fn update_fast_physics(
-        &mut self,
-        context: &UpdateContext,
-        lgciu1: &impl LgciuInterface,
-        lgciu2: &impl LgciuInterface,
-        adirs: &impl AdirsDiscreteOutputs,
-    ) {
-        self.forward_cargo_door.update(
-            context,
-            &self.forward_cargo_door_controller,
-            self.green_circuit.auxiliary_section(),
-        );
-
-        self.aft_cargo_door.update(
-            context,
-            &self.aft_cargo_door_controller,
-            self.green_circuit.auxiliary_section(),
-        );
-
-        self.gear_system_hydraulic_controller.update(
-            adirs,
-            lgciu1,
-            lgciu2,
-            &self.gear_system_gravity_extension_controller,
-        );
-
-        self.trim_assembly.update(
-            context,
-            &self.trim_controller,
-            &self.trim_controller,
-            [
-                self.green_circuit
-                    .system_section()
-                    .pressure_downstream_leak_valve(),
-                self.yellow_circuit
-                    .system_section()
-                    .pressure_downstream_leak_valve(),
-            ],
         );
     }
 
@@ -3920,7 +3906,7 @@ impl A380BrakingForce {
                 .get_identifier("RIGHT_FLAPS_POSITION_PERCENT".to_owned()),
 
             enabled_chocks_id: context.get_identifier("MODEL_WHEELCHOCKS_ENABLED".to_owned()),
-            light_beacon_on_id: context.get_identifier("LIGHT BEACON ON".to_owned()),
+            light_beacon_on_id: context.get_identifier("LIGHT BEACON".to_owned()),
 
             left_braking_force: 0.,
             right_braking_force: 0.,
@@ -10019,27 +10005,6 @@ mod tests {
         }
 
         #[test]
-        fn low_air_press_fault_causes_ptu_fault() {
-            let mut test_bed = test_bed_on_ground_with()
-                .engines_off()
-                .on_the_ground()
-                .set_cold_dark_inputs()
-                .start_eng1(Ratio::new::<percent>(80.))
-                .start_eng2(Ratio::new::<percent>(80.))
-                .run_waiting_for(Duration::from_millis(500));
-
-            assert!(!test_bed.green_edp_has_fault());
-            assert!(!test_bed.yellow_edp_has_fault());
-
-            test_bed = test_bed
-                .air_press_low()
-                .run_waiting_for(Duration::from_secs_f64(10.));
-
-            assert!(test_bed.green_edp_has_fault());
-            assert!(test_bed.yellow_edp_has_fault());
-        }
-
-        #[test]
         fn ailerons_are_dropped_down_in_cold_and_dark() {
             let mut test_bed = test_bed_on_ground_with()
                 .engines_off()
@@ -10257,76 +10222,6 @@ mod tests {
             assert!(test_bed.gear_system_state() == GearSystemState::AllUpLocked);
         }
 
-        #[test]
-        fn gear_gravity_extension_reverted_has_correct_sequence() {
-            let mut test_bed = test_bed_in_flight_with()
-                .set_cold_dark_inputs()
-                .in_flight()
-                .run_one_tick();
-
-            assert!(test_bed.gear_system_state() == GearSystemState::AllUpLocked);
-
-            test_bed = test_bed
-                .turn_emergency_gear_extension_n_turns(3)
-                .run_waiting_for(Duration::from_secs_f64(35.));
-
-            assert!(test_bed.is_all_doors_really_down());
-            assert!(test_bed.is_all_gears_really_down());
-
-            test_bed = test_bed
-                .stow_emergency_gear_extension()
-                .run_waiting_for(Duration::from_secs_f64(5.));
-
-            // After 5 seconds we expect gear being retracted and doors still down
-            assert!(test_bed.gear_system_state() == GearSystemState::Retracting);
-            assert!(test_bed.is_all_doors_really_down());
-            assert!(!test_bed.is_all_gears_really_down());
-
-            test_bed = test_bed.run_waiting_for(Duration::from_secs_f64(15.));
-
-            assert!(test_bed.gear_system_state() == GearSystemState::AllUpLocked);
-            assert!(test_bed.is_all_doors_really_up());
-            assert!(test_bed.is_all_gears_really_up());
-        }
-
-        // #[test]
-        // fn aileron_init_centered_if_spawning_in_air() {
-        //     let mut test_bed = test_bed_in_flight_with()
-        //         .set_cold_dark_inputs()
-        //         .in_flight()
-        //         .run_one_tick();
-
-        //     assert!(test_bed.get_left_aileron_position().get::<ratio>() < 0.55);
-        //     assert!(test_bed.get_right_aileron_position().get::<ratio>() < 0.55);
-        //     assert!(test_bed.get_left_aileron_position().get::<ratio>() > 0.45);
-        //     assert!(test_bed.get_right_aileron_position().get::<ratio>() > 0.45);
-        // }
-
-        // #[test]
-        // fn rudder_init_centered_if_spawning_in_air() {
-        //     let mut test_bed = test_bed_in_flight_with()
-        //         .set_cold_dark_inputs()
-        //         .in_flight()
-        //         .run_one_tick();
-
-        //     assert!(test_bed.get_rudder_position().get::<ratio>() > 0.49);
-        //     assert!(test_bed.get_rudder_position().get::<ratio>() < 0.51);
-        // }
-
-        // #[test]
-        // fn elevator_init_centered_if_spawning_in_air() {
-        //     let mut test_bed = test_bed_in_flight_with()
-        //         .set_cold_dark_inputs()
-        //         .in_flight()
-        //         .run_one_tick();
-
-        //     // Elevator deflection is assymetrical so middle is below 0.5
-        //     assert!(test_bed.get_left_elevator_position().get::<ratio>() < 0.45);
-        //     assert!(test_bed.get_right_elevator_position().get::<ratio>() < 0.45);
-        //     assert!(test_bed.get_left_elevator_position().get::<ratio>() > 0.35);
-        //     assert!(test_bed.get_right_elevator_position().get::<ratio>() > 0.35);
-        // }
-        //
         #[test]
         fn brakes_on_ground_work_after_emergency_extension() {
             let mut test_bed = test_bed_in_flight_with()

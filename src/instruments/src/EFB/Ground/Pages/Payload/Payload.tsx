@@ -11,12 +11,12 @@ import {
 import { useSimVar } from '@instruments/common/simVars';
 import { Units } from '@shared/units';
 import { usePersistentProperty } from '@instruments/common/persistence';
-import { BitFlags } from '@shared/bitFlags';
-import { useBitFlags } from '@instruments/common/bitFlags';
 import { round } from 'lodash';
+import { useSeatFlags } from '@instruments/common/bitFlags';
+import { SeatFlags } from '@shared/bitFlags';
 import { CargoWidget } from './Seating/CargoWidget';
 import { ChartWidget } from './Chart/ChartWidget';
-import { PaxStationInfo, CargoStationInfo } from './Seating/Constants';
+import { CargoStationInfo, PaxStationInfo } from './Seating/Constants';
 import { t } from '../../../translation';
 import { TooltipWrapper } from '../../../UtilComponents/TooltipWrapper';
 import { SimpleInput } from '../../../UtilComponents/Form/SimpleInput/SimpleInput';
@@ -32,6 +32,34 @@ export const Payload = () => {
     const { usingMetric } = Units;
     const { showModal } = useModals();
 
+    const [aFlags] = useSeatFlags(`L:${Loadsheet.seatMap[0].simVar}`, Loadsheet.seatMap[0].capacity);
+    const [bFlags] = useSeatFlags(`L:${Loadsheet.seatMap[1].simVar}`, Loadsheet.seatMap[1].capacity);
+    const [cFlags] = useSeatFlags(`L:${Loadsheet.seatMap[2].simVar}`, Loadsheet.seatMap[2].capacity);
+    const [dFlags] = useSeatFlags(`L:${Loadsheet.seatMap[3].simVar}`, Loadsheet.seatMap[3].capacity);
+
+    const [aFlagsDesired, setAFlagsDesired] = useSeatFlags(`L:${Loadsheet.seatMap[0].simVar}_DESIRED`, Loadsheet.seatMap[0].capacity);
+    const [bFlagsDesired, setBFlagsDesired] = useSeatFlags(`L:${Loadsheet.seatMap[1].simVar}_DESIRED`, Loadsheet.seatMap[1].capacity);
+    const [cFlagsDesired, setCFlagsDesired] = useSeatFlags(`L:${Loadsheet.seatMap[2].simVar}_DESIRED`, Loadsheet.seatMap[2].capacity);
+    const [dFlagsDesired, setDFlagsDesired] = useSeatFlags(`L:${Loadsheet.seatMap[3].simVar}_DESIRED`, Loadsheet.seatMap[3].capacity);
+
+    const activeFlags = useMemo(() => [aFlags, bFlags, cFlags, dFlags], [aFlags, bFlags, cFlags, dFlags]);
+    const desiredFlags = useMemo(() => [aFlagsDesired, bFlagsDesired, cFlagsDesired, dFlagsDesired], [aFlagsDesired, bFlagsDesired, cFlagsDesired, dFlagsDesired]);
+    const setDesiredFlags = useMemo(() => [setAFlagsDesired, setBFlagsDesired, setCFlagsDesired, setDFlagsDesired], []);
+
+    const [fwdBag] = useSimVar(`L:${Loadsheet.cargoMap[0].simVar}`, 'Number', 200);
+    const [aftCont] = useSimVar(`L:${Loadsheet.cargoMap[1].simVar}`, 'Number', 200);
+    const [aftBag] = useSimVar(`L:${Loadsheet.cargoMap[2].simVar}`, 'Number', 200);
+    const [aftBulk] = useSimVar(`L:${Loadsheet.cargoMap[3].simVar}`, 'Number', 200);
+
+    const [fwdBagDesired, setFwdBagDesired] = useSimVar(`L:${Loadsheet.cargoMap[0].simVar}_DESIRED`, 'Number', 200);
+    const [aftContDesired, setAftContDesired] = useSimVar(`L:${Loadsheet.cargoMap[1].simVar}_DESIRED`, 'Number', 200);
+    const [aftBagDesired, setAftBagDesired] = useSimVar(`L:${Loadsheet.cargoMap[2].simVar}_DESIRED`, 'Number', 200);
+    const [aftBulkDesired, setAftBulkDesired] = useSimVar(`L:${Loadsheet.cargoMap[3].simVar}_DESIRED`, 'Number', 200);
+
+    const cargo = useMemo(() => [fwdBag, aftCont, aftBag, aftBulk], [fwdBag, aftCont, aftBag, aftBulk]);
+    const cargoDesired = useMemo(() => [fwdBagDesired, aftContDesired, aftBagDesired, aftBulkDesired], [fwdBagDesired, aftContDesired, aftBagDesired, aftBulkDesired]);
+    const setCargoDesired = useMemo(() => [setFwdBagDesired, setAftContDesired, setAftBagDesired, setAftBulkDesired], []);
+
     const massUnitForDisplay = usingMetric ? 'KGS' : 'LBS';
 
     const simbriefDataLoaded = isSimbriefDataLoaded();
@@ -44,62 +72,31 @@ export const Payload = () => {
 
     const [emptyWeight] = useSimVar('A:EMPTY WEIGHT', usingMetric ? 'Kilograms' : 'Pounds', 2_000);
 
-    const [paxA] = useSimVar('L:A32NX_PAX_TOTAL_ROWS_1_6', 'Number');
-    const [paxB] = useSimVar('L:A32NX_PAX_TOTAL_ROWS_7_13', 'Number');
-    const [paxC] = useSimVar('L:A32NX_PAX_TOTAL_ROWS_14_21', 'Number');
-    const [paxD] = useSimVar('L:A32NX_PAX_TOTAL_ROWS_22_29', 'Number');
-
-    const pax = [paxA, paxB, paxC, paxD];
-
-    const [paxADesired, setPaxADesired] = useSimVar('L:A32NX_PAX_TOTAL_ROWS_1_6_DESIRED', 'number');
-    const [paxBDesired, setPaxBDesired] = useSimVar('L:A32NX_PAX_TOTAL_ROWS_7_13_DESIRED', 'number');
-    const [paxCDesired, setPaxCDesired] = useSimVar('L:A32NX_PAX_TOTAL_ROWS_14_21_DESIRED', 'number');
-    const [paxDDesired, setPaxDDesired] = useSimVar('L:A32NX_PAX_TOTAL_ROWS_22_29_DESIRED', 'number');
-
     const [stationSize, setStationLen] = useState<number[]>([]);
-    const totalPax = useMemo(() => pax && pax.length > 0 && pax.reduce((a, b) => a + b), [...pax]);
     const maxPax = useMemo(() => ((stationSize && stationSize.length > 0) ? stationSize.reduce((a, b) => a + b) : -1), [stationSize]);
 
-    const [aFlags, setAFlags] = useBitFlags('PAX_FLAGS_A');
-    const [bFlags, setBFlags] = useBitFlags('PAX_FLAGS_B');
-    const [cFlags, setCFlags] = useBitFlags('PAX_FLAGS_C');
-    const [dFlags, setDFlags] = useBitFlags('PAX_FLAGS_D');
+    // Calculate Total Pax from Pax Flags
+    const totalPax = useMemo(() => {
+        let p = 0;
+        activeFlags.forEach((flag) => {
+            p += flag.getTotalFilledSeats();
+        });
+        return p;
+    }, [...activeFlags]);
 
-    const paxDesired = [paxADesired, paxBDesired, paxCDesired, paxDDesired];
-    const [setPaxDesired] = useState([setPaxADesired, setPaxBDesired, setPaxCDesired, setPaxDDesired]);
-    const totalPaxDesired = useMemo(() => (paxDesired && paxDesired.length > 0 && paxDesired.reduce((a, b) => parseInt(a) + parseInt(b))), [...paxDesired]);
+    const totalPaxDesired = useMemo(() => {
+        let p = 0;
+        desiredFlags.forEach((flag) => {
+            p += flag.getTotalFilledSeats();
+        });
+        return p;
+    }, [...desiredFlags]);
 
-    const [aFlagsDesired, setAFlagsDesired] = useBitFlags('PAX_FLAGS_A_DESIRED');
-    const [bFlagsDesired, setBFlagsDesired] = useBitFlags('PAX_FLAGS_B_DESIRED');
-    const [cFlagsDesired, setCFlagsDesired] = useBitFlags('PAX_FLAGS_C_DESIRED');
-    const [dFlagsDesired, setDFlagsDesired] = useBitFlags('PAX_FLAGS_D_DESIRED');
-
-    const activeFlags = [aFlags, bFlags, cFlags, dFlags];
-    const desiredFlags = [aFlagsDesired, bFlagsDesired, cFlagsDesired, dFlagsDesired];
-    const setActiveFlags = useMemo(() => [setAFlags, setBFlags, setCFlags, setDFlags], []);
-    const setDesiredFlags = useMemo(() => [setAFlagsDesired, setBFlagsDesired, setCFlagsDesired, setDFlagsDesired], []);
-
-    const [clicked, setClicked] = useState(false);
-
-    const [fwdBag] = useSimVar('L:A32NX_CARGO_FWD_BAGGAGE_CONTAINER', 'Number', 200);
-    const [aftCont] = useSimVar('L:A32NX_CARGO_AFT_CONTAINER', 'Number', 200);
-    const [aftBag] = useSimVar('L:A32NX_CARGO_AFT_BAGGAGE', 'Number', 200);
-    const [aftBulk] = useSimVar('L:A32NX_CARGO_AFT_BULK_LOOSE', 'Number', 200);
-
-    const cargo = [fwdBag, aftCont, aftBag, aftBulk];
-
-    const [fwdBagDesired, setFwdBagDesired] = useSimVar('L:A32NX_CARGO_FWD_BAGGAGE_CONTAINER_DESIRED', 'Number', 200);
-    const [aftContDesired, setAftContDesired] = useSimVar('L:A32NX_CARGO_AFT_CONTAINER_DESIRED', 'Number', 200);
-    const [aftBagDesired, setAftBagDesired] = useSimVar('L:A32NX_CARGO_AFT_BAGGAGE_DESIRED', 'Number', 200);
-    const [aftBulkDesired, setAftBulkDesired] = useSimVar('L:A32NX_CARGO_AFT_BULK_LOOSE_DESIRED', 'Number', 200);
-
-    const cargoDesired = [fwdBagDesired, aftContDesired, aftBagDesired, aftBulkDesired];
-    const setCargoDesired = useMemo(() => [setFwdBagDesired, setAftContDesired, setAftBagDesired, setAftBulkDesired], []);
-    const totalCargoDesired = useMemo(() => ((cargoDesired && cargoDesired.length > 0) ? cargoDesired.reduce((a, b) => parseInt(a) + parseInt(b)) : -1), [...cargoDesired, ...paxDesired]);
+    const totalCargoDesired = useMemo(() => ((cargoDesired && cargoDesired.length > 0) ? cargoDesired.reduce((a, b) => a + b) : -1), [...cargoDesired]);
 
     const [cargoStationSize, setCargoStationLen] = useState<number[]>([]);
 
-    const totalCargo = useMemo(() => ((cargo && cargo.length > 0) ? cargo.reduce((a, b) => parseInt(a) + parseInt(b)) : -1), [...cargo, ...pax]);
+    const totalCargo = useMemo(() => ((cargo && cargo.length > 0) ? cargo.reduce((a, b) => a + b) : -1), [...cargo]);
     const maxCargo = useMemo(() => ((cargoStationSize && cargoStationSize.length > 0) ? cargoStationSize.reduce((a, b) => a + b) : -1), [cargoStationSize]);
 
     const [centerCurrent] = useSimVar('FUEL TANK CENTER QUANTITY', 'Gallons', 2_000);
@@ -161,63 +158,16 @@ export const Payload = () => {
     const [eng2Running] = useSimVar('ENG COMBUSTION:2', 'Bool', 2_000);
     const [coldAndDark, setColdAndDark] = useState<boolean>(true);
 
-    const returnSeats = useCallback((stationIndex: number, empty: boolean, flags: BitFlags[]): number[] => {
-        const seats: number[] = [];
-        const bitFlags: BitFlags = flags[stationIndex];
-        for (let seatId = 0; seatId < stationSize[stationIndex]; seatId++) {
-            if (!empty && bitFlags.getBitIndex(seatId)) {
-                seats.push(seatId);
-            } else if (empty && !bitFlags.getBitIndex(seatId)) {
-                seats.push(seatId);
-            }
+    const chooseDesiredSeats = useCallback((stationIndex: number, fillSeats: boolean = true, numChoose: number) => {
+        const seatFlags: SeatFlags = desiredFlags[stationIndex];
+        if (fillSeats) {
+            seatFlags.fillEmptySeats(numChoose);
+        } else {
+            seatFlags.emptyFilledSeats(numChoose);
         }
-        return seats;
-    }, [...desiredFlags, ...activeFlags]);
 
-    const returnNumSeats = useCallback((stationIndex: number, empty: boolean, flags: BitFlags[]): number => {
-        let count = 0;
-        const bitFlags: BitFlags = flags[stationIndex];
-        for (let seatId = 0; seatId < stationSize[stationIndex]; seatId++) {
-            if (!empty && bitFlags.getBitIndex(seatId)) {
-                count++;
-            } else if (empty && !bitFlags.getBitIndex(seatId)) {
-                count++;
-            }
-        }
-        return count;
-    }, [...desiredFlags, ...activeFlags]);
-
-    const chooseSeats = useCallback((stationIndex: number, choices: number[], numChoose: number) => {
-        const bitFlags: BitFlags = activeFlags[stationIndex];
-        for (let i = 0; i < numChoose; i++) {
-            if (choices.length > 0) {
-                const chosen = ~~(Math.random() * choices.length);
-                bitFlags.toggleBitIndex(choices[chosen]);
-                choices.splice(chosen, 1);
-            }
-        }
-        setActiveFlags[stationIndex](bitFlags);
-    }, [...pax, ...activeFlags]);
-
-    const chooseDesiredSeats = useCallback((stationIndex: number, choices: number[], numChoose: number) => {
-        const bitFlags: BitFlags = desiredFlags[stationIndex];
-        for (let i = 0; i < numChoose; i++) {
-            if (choices.length > 0) {
-                const chosen = ~~(Math.random() * choices.length);
-                bitFlags.toggleBitIndex(choices[chosen]);
-                choices.splice(chosen, 1);
-            }
-        }
-        setDesiredFlags[stationIndex](bitFlags);
-    }, [...paxDesired, ...desiredFlags]);
-
-    const calculateSeatOptions = useCallback((stationIndex: number, increase: boolean): number[] => {
-        const plannedSeats = returnSeats(stationIndex, increase, desiredFlags);
-        const activeSeats = returnSeats(stationIndex, !increase, activeFlags);
-
-        const intersection = activeSeats.filter((element) => plannedSeats.includes(element));
-        return intersection;
-    }, [...activeFlags, ...desiredFlags]);
+        setDesiredFlags[stationIndex](seatFlags);
+    }, [...desiredFlags]);
 
     const setTargetPax = useCallback((numOfPax: number) => {
         if (!stationSize || numOfPax === totalPaxDesired || numOfPax > maxPax || numOfPax < 0) return;
@@ -225,20 +175,24 @@ export const Payload = () => {
         let paxRemaining = numOfPax;
 
         const fillStation = (stationIndex: number, percent: number, paxToFill: number) => {
-            const pax = Math.min(Math.trunc(percent * paxToFill), stationSize[stationIndex]);
-            setPaxDesired[stationIndex](pax);
-            paxRemaining -= pax;
+            const sFlags: SeatFlags = desiredFlags[stationIndex];
+            const toBeFilled = Math.min(Math.trunc(percent * paxToFill), stationSize[stationIndex]);
 
-            const paxCount = returnNumSeats(stationIndex, false, activeFlags);
-            const seats: number[] = returnSeats(stationIndex, pax[stationIndex] > paxCount, activeFlags);
-            chooseDesiredSeats(stationIndex, seats, Math.abs(paxCount - pax[stationIndex]));
+            paxRemaining -= toBeFilled;
+
+            const planSeatedPax = sFlags.getTotalFilledSeats();
+            chooseDesiredSeats(
+                stationIndex,
+                (toBeFilled > planSeatedPax),
+                Math.abs(toBeFilled - planSeatedPax),
+            );
         };
 
-        for (let i = pax.length - 1; i > 0; i--) {
+        for (let i = seatMap.length - 1; i > 0; i--) {
             fillStation(i, seatMap[i].fill, numOfPax);
         }
         fillStation(0, 1, paxRemaining);
-    }, [...paxDesired, totalPaxDesired, maxPax, ...stationSize, ...seatMap]);
+    }, [maxPax, ...stationSize, ...seatMap, totalPaxDesired]);
 
     const setTargetCargo = useCallback((numberOfPax: number, freight: number, perBagWeight: number = paxBagWeight) => {
         const bagWeight = numberOfPax * perBagWeight;
@@ -256,23 +210,24 @@ export const Payload = () => {
             fillCargo(i, cargoStationSize[i] / maxCargo, loadableCargoWeight);
         }
         fillCargo(0, 1, remainingWeight);
-    }, [...cargoDesired, paxBagWeight, ...cargoStationSize]);
+    }, [maxCargo, ...cargoStationSize, ...cargoMap, ...cargoDesired, paxBagWeight]);
 
     const calculatePaxMoment = useCallback(() => {
         let paxMoment = 0;
-        pax.forEach((station, i) => {
-            paxMoment += station * paxWeight * seatMap[i].position;
+        activeFlags.forEach((stationFlag, i) => {
+            paxMoment += stationFlag.getTotalFilledSeats() * paxWeight * seatMap[i].position;
         });
         return paxMoment;
-    }, [paxWeight, ...pax, seatMap]);
+    }, [paxWeight, seatMap, ...activeFlags]);
 
     const calculatePaxDesiredMoment = useCallback(() => {
         let paxMoment = 0;
-        paxDesired.forEach((station, i) => {
-            paxMoment += station * paxWeight * seatMap[i].position;
+        desiredFlags.forEach((stationFlag, i) => {
+            paxMoment += stationFlag.getTotalFilledSeats() * paxWeight * seatMap[i].position;
         });
+
         return paxMoment;
-    }, [paxWeight, ...paxDesired, seatMap]);
+    }, [paxWeight, seatMap, ...desiredFlags]);
 
     const calculateCargoMoment = useCallback(() => {
         let cargoMoment = 0;
@@ -311,33 +266,30 @@ export const Payload = () => {
         setCargoDesired[cargoStation](Math.round(Units.kilogramToUser(cargoMap[cargoStation].weight) * cargoPercent));
     }, [cargoMap]);
 
-    const onClickSeat = useCallback((station: number, seatId: number) => {
-        setClicked(true);
-        let newPax = totalPaxDesired;
+    const onClickSeat = useCallback((stationIndex: number, seatId: number) => {
+        const seatFlags: SeatFlags = desiredFlags[stationIndex];
+        seatFlags.toggleSeatId(seatId);
+        setDesiredFlags[stationIndex](seatFlags);
+
+        let newPaxDesired = 0;
+        desiredFlags.forEach((flag) => {
+            newPaxDesired += flag.getTotalFilledSeats();
+        });
         // TODO FIXME: This calculation does not work correctly if user clicks on many seats in rapid succession
-        const freight = Math.max(totalCargoDesired - totalPaxDesired * paxBagWeight, 0);
-        const bitFlags: BitFlags = desiredFlags[station];
+        const newPaxBag = newPaxDesired * paxBagWeight;
+        const paxDelta = newPaxDesired - totalPaxDesired;
+        const freight = Math.max(totalCargoDesired - newPaxBag + paxDelta * paxBagWeight, 0);
 
-        if (bitFlags.getBitIndex(seatId)) {
-            newPax -= 1;
-            setPaxDesired[station](Math.max(paxDesired[station] - 1, 0));
-        } else {
-            newPax += 1;
-            setPaxDesired[station](Math.min(paxDesired[station] + 1, stationSize[station]));
-        }
-
-        setTargetCargo(newPax, freight);
-        bitFlags.toggleBitIndex(seatId);
-        setDesiredFlags[station](bitFlags);
-        setTimeout(() => setClicked(false), 500);
+        setTargetCargo(newPaxDesired, freight);
     }, [
-        totalPaxDesired, paxBagWeight,
-        totalCargoDesired, totalPaxDesired,
-        ...cargoDesired, ...paxDesired,
+        paxBagWeight,
+        totalCargoDesired,
+        ...cargoDesired,
         ...desiredFlags, ...stationSize,
+        totalPaxDesired,
     ]);
 
-    const handleDeboarding = () => {
+    const handleDeboarding = useCallback(() => {
         if (!boardingStarted) {
             showModal(
                 <PromptModal
@@ -354,14 +306,35 @@ export const Payload = () => {
             );
         }
         setBoardingStarted(false);
-    };
+    }, [totalPaxDesired, totalPax, totalCargo, totalCargoDesired]);
+
+    const calculateBoardingTime = useMemo(() => {
+        // factors taken from flybywire-aircraft-a320-neo/html_ui/Pages/A32NX_Core/A32NX_Boarding.js line 175+
+        let boardingRateMultiplier = 0;
+        if (boardingRate === 'REAL') {
+            boardingRateMultiplier = 5;
+        } else if (boardingRate === 'FAST') {
+            boardingRateMultiplier = 1;
+        }
+
+        // value taken from flybywire-aircraft-a320-neo/html_ui/Pages/A32NX_Core/A32NX_Boarding.js line 210
+        const cargoWeightPerWeightStep = 60;
+
+        const differentialPax = Math.abs(totalPaxDesired - totalPax);
+        const differentialCargo = Math.abs(totalCargoDesired - totalCargo);
+
+        const estimatedPaxBoardingSeconds = differentialPax * boardingRateMultiplier;
+        const estimatedCargoLoadingSeconds = (differentialCargo / cargoWeightPerWeightStep) * boardingRateMultiplier;
+
+        return Math.max(estimatedPaxBoardingSeconds, estimatedCargoLoadingSeconds);
+    }, [totalPaxDesired, totalPax, totalCargoDesired, totalCargo, boardingRate]);
 
     const boardingStatusClass = useMemo(() => {
         if (!boardingStarted) {
             return 'text-theme-highlight';
         }
         return (totalPaxDesired * paxWeight + totalCargoDesired) >= (totalPax * paxWeight + totalCargo) ? 'text-green-500' : 'text-yellow-500';
-    }, [boardingStarted, paxWeight, totalPaxDesired, totalCargoDesired, totalPax, totalCargo]);
+    }, [boardingStarted, paxWeight, totalCargoDesired, totalCargo, totalPaxDesired, totalPax]);
 
     // Init
     useEffect(() => {
@@ -397,11 +370,7 @@ export const Payload = () => {
             stationSize.push(0);
         }
         seatMap.forEach((station, i) => {
-            station.rows.forEach((row) => {
-                row.seats.forEach(() => {
-                    stationSize[i]++;
-                });
-            });
+            stationSize[i] = station.capacity;
         });
         setStationLen(stationSize);
     }, [seatMap]);
@@ -418,89 +387,10 @@ export const Payload = () => {
         setCargoStationLen(cargoSize);
     }, [cargoMap]);
 
-    // Check that pax data and bitflags are valid
     useEffect(() => {
-        pax.forEach((stationPaxNum: number, stationIndex: number) => {
-            const paxCount = returnNumSeats(stationIndex, false, activeFlags);
-            if (stationPaxNum === 0 && paxCount !== stationPaxNum) {
-                setActiveFlags[stationIndex](new BitFlags(0));
-            }
-        });
-
-        paxDesired.forEach((stationPaxNum, stationIndex) => {
-            const paxCount = returnNumSeats(stationIndex, false, desiredFlags);
-            if (stationPaxNum === 0 && paxCount !== stationPaxNum) {
-                setDesiredFlags[stationIndex](new BitFlags(0));
-            }
-        });
-        if (!boardingStarted) {
-            setTargetPax(totalPax);
-            setTargetCargo(0, totalCargo);
-        }
-    }, [stationSize]);
-
-    // Adjusted desired passenger seating layout to match station passenger count on change
-    useEffect(() => {
-        paxDesired.forEach((stationNumPax, stationIndex) => {
-            const paxCount = returnNumSeats(stationIndex, false, desiredFlags);
-            if (!clicked && stationNumPax !== paxCount) {
-                const seatOptions = calculateSeatOptions(stationIndex, stationNumPax > paxCount);
-                const seatDelta = Math.abs(paxCount - stationNumPax);
-
-                if (seatOptions.length >= seatDelta) {
-                    chooseDesiredSeats(stationIndex, seatOptions, seatDelta);
-                } else if (seatOptions.length && seatOptions.length < seatDelta) {
-                    // Fallback if we don't have enough seat options using desired as reference
-                    const leftOver = seatDelta - seatOptions.length;
-                    chooseDesiredSeats(stationIndex, seatOptions, seatOptions.length);
-                    const seats: number[] = returnSeats(stationIndex, stationNumPax > paxCount, desiredFlags);
-                    chooseDesiredSeats(stationIndex, seats, leftOver);
-                } else {
-                    // Fallback if no seat options using desired as reference
-                    const seats: number[] = returnSeats(stationIndex, stationNumPax > paxCount, desiredFlags);
-                    chooseDesiredSeats(stationIndex, seats, seatDelta);
-                }
-            }
-        });
-    }, [...paxDesired]);
-
-    // Adjust actual passenger seating layout to match station passenger count on change
-    useEffect(() => {
-        pax.forEach((stationNumPax: number, stationIndex: number) => {
-            const paxCount = returnNumSeats(stationIndex, false, activeFlags);
-            if (!clicked && stationNumPax !== paxCount) {
-                const seatOptions = calculateSeatOptions(stationIndex, stationNumPax < paxCount);
-                const seatDelta = Math.abs(paxCount - stationNumPax);
-                if (seatOptions.length >= seatDelta) {
-                    chooseSeats(stationIndex, seatOptions, seatDelta);
-                } else if (seatOptions.length && seatOptions.length < seatDelta) {
-                    // Fallback if we don't have enough seat options using desired as reference
-                    const leftOver = seatDelta - seatOptions.length;
-                    chooseSeats(stationIndex, seatOptions, seatOptions.length);
-                    const seats: number[] = returnSeats(stationIndex, stationNumPax > paxCount, activeFlags);
-                    chooseSeats(stationIndex, seats, leftOver);
-                } else {
-                    // Fallback if no seat options using desired as reference
-                    const seats: number[] = returnSeats(stationIndex, stationNumPax > paxCount, activeFlags);
-                    chooseSeats(stationIndex, seats, seatDelta);
-                }
-            }
-        });
-    }, [...pax]);
-
-    useEffect(() => {
-        pax.forEach((stationNumPax: number, stationIndex: number) => {
-            // Sync active to desired layout if pax is equal to desired
-            if (stationNumPax === parseInt(paxDesired[stationIndex])) {
-                setActiveFlags[stationIndex](desiredFlags[stationIndex]);
-            }
-        });
-    }, [boardingStarted]);
-
-    useEffect(() => {
-        const centerTankMoment = -6;
+        const centerTankMoment = -4.5;
         const innerTankMoment = -8;
-        const outerTankMoment = -13;
+        const outerTankMoment = -17.6;
         // Adjust ZFW CG Values based on payload
         const newZfw = emptyWeight + totalPax * paxWeight + totalCargo;
         const newZfwDesired = emptyWeight + totalPaxDesired * paxWeight + totalCargoDesired;
@@ -568,12 +458,19 @@ export const Payload = () => {
             setMlwDesiredCg(newDesiredCg);
         }
     }, [
-        ...pax, ...paxDesired,
+        ...desiredFlags, ...activeFlags,
         ...cargo, ...cargoDesired,
         ...fuel, destEfob,
         paxWeight, paxBagWeight,
         emptyWeight,
     ]);
+
+    const remainingTimeString = () => {
+        const minutes = Math.round(calculateBoardingTime / 60);
+        const seconds = calculateBoardingTime % 60;
+        const padding = seconds < 10 ? '0' : '';
+        return `${minutes}:${padding}${seconds.toFixed(0)} ${t('Ground.Payload.EstimatedDurationUnit')}`;
+    };
 
     return (
         <div>
@@ -753,7 +650,7 @@ export const Payload = () => {
                                     <TooltipWrapper text={t('Ground.Payload.TT.StartBoarding')}>
                                         <button
                                             type="button"
-                                            className={`flex justify-center rounded-lg items-center ml-auto w-24 h-12 
+                                            className={`flex justify-center rounded-lg items-center ml-auto w-24 h-12
                                                         ${boardingStatusClass} bg-current`}
                                             onClick={() => setBoardingStarted(!boardingStarted)}
                                         >
@@ -767,7 +664,7 @@ export const Payload = () => {
                                     <TooltipWrapper text={t('Ground.Payload.TT.StartDeboarding')}>
                                         <button
                                             type="button"
-                                            className={`flex justify-center items-center ml-1 w-16 h-12 text-theme-highlight bg-current rounded-lg 
+                                            className={`flex justify-center items-center ml-1 w-16 h-12 text-theme-highlight bg-current rounded-lg
                                                         ${totalPax === 0 && totalCargo === 0 && 'opacity-20 pointer-events-none'}`}
                                             onClick={() => handleDeboarding()}
                                         >
@@ -789,8 +686,8 @@ export const Payload = () => {
                                 && (
                                     <TooltipWrapper text={t('Ground.Payload.TT.FillPayloadFromSimbrief')}>
                                         <div
-                                            className={`flex justify-center items-center px-2 h-auto text-theme-body 
-                                                       hover:text-theme-highlight bg-theme-highlight hover:bg-theme-body 
+                                            className={`flex justify-center items-center px-2 h-auto text-theme-body
+                                                       hover:text-theme-highlight bg-theme-highlight hover:bg-theme-body
                                                        rounded-md rounded-l-none border-2 border-theme-highlight transition duration-100`}
                                             onClick={setSimBriefValues}
                                         >
@@ -805,6 +702,11 @@ export const Payload = () => {
                                 <div className="flex flex-row justify-between items-center">
                                     <div className="flex font-medium">
                                         {t('Ground.Payload.BoardingTime')}
+                                        <span className="flex relative flex-row items-center ml-2 text-sm font-light">
+                                            (
+                                            {remainingTimeString()}
+                                            )
+                                        </span>
                                     </div>
 
                                     <SelectGroup>
